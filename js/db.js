@@ -1,51 +1,203 @@
 // =============================================
-// db.js — DADOS E FIREBASE INTEGRAÇÃO
+// db.js — DADOS REAIS DA COPA DO MUNDO 2026
 // =============================================
 
-// 1. DADOS DAS SELEÇÕES (FlagCDN Iso Codes)
+// 1. MAPEAMENTO DE SELEÇÕES
+const TEAM_MAP = {
+  'Mexico': { code: 'mx', name: 'México' },
+  'South Africa': { code: 'za', name: 'África do Sul' },
+  'South Korea': { code: 'kr', name: 'Coreia do Sul' },
+  'Czech Republic': { code: 'cz', name: 'Tchéquia' },
+  'Canada': { code: 'ca', name: 'Canadá' },
+  'Bosnia & Herzegovina': { code: 'ba', name: 'Bósnia e Herzegovina' },
+  'Qatar': { code: 'qa', name: 'Catar' },
+  'Switzerland': { code: 'ch', name: 'Suíça' },
+  'Brazil': { code: 'br', name: 'Brasil' },
+  'Morocco': { code: 'ma', name: 'Marrocos' },
+  'Haiti': { code: 'ht', name: 'Haiti' },
+  'Scotland': { code: 'gb-sct', name: 'Escócia' },
+  'USA': { code: 'us', name: 'EUA' },
+  'Paraguay': { code: 'py', name: 'Paraguai' },
+  'Australia': { code: 'au', name: 'Austrália' },
+  'Turkey': { code: 'tr', name: 'Turquia' },
+  'Germany': { code: 'de', name: 'Alemanha' },
+  'Curaçao': { code: 'cw', name: 'Curaçao' },
+  'Ivory Coast': { code: 'ci', name: 'Costa do Marfim' },
+  'Ecuador': { code: 'ec', name: 'Equador' },
+  'Netherlands': { code: 'nl', name: 'Holanda' },
+  'Japan': { code: 'jp', name: 'Japão' },
+  'Sweden': { code: 'se', name: 'Suécia' },
+  'Tunisia': { code: 'tn', name: 'Tunísia' },
+  'Belgium': { code: 'be', name: 'Bélgica' },
+  'Egypt': { code: 'eg', name: 'Egito' },
+  'Iran': { code: 'ir', name: 'Irã' },
+  'New Zealand': { code: 'nz', name: 'Nova Zelândia' },
+  'Spain': { code: 'es', name: 'Espanha' },
+  'Cape Verde': { code: 'cv', name: 'Cabo Verde' },
+  'Saudi Arabia': { code: 'sa', name: 'Arábia Saudita' },
+  'Uruguay': { code: 'uy', name: 'Uruguai' },
+  'France': { code: 'fr', name: 'França' },
+  'Senegal': { code: 'sn', name: 'Senegal' },
+  'Iraq': { code: 'iq', name: 'Iraque' },
+  'Norway': { code: 'no', name: 'Noruega' },
+  'Argentina': { code: 'ar', name: 'Argentina' },
+  'Algeria': { code: 'dz', name: 'Argélia' },
+  'Austria': { code: 'at', name: 'Áustria' },
+  'Jordan': { code: 'jo', name: 'Jordânia' },
+  'Portugal': { code: 'pt', name: 'Portugal' },
+  'DR Congo': { code: 'cd', name: 'RD Congo' },
+  'Uzbekistan': { code: 'uz', name: 'Uzbequistão' },
+  'Colombia': { code: 'co', name: 'Colômbia' },
+  'England': { code: 'gb-eng', name: 'Inglaterra' },
+  'Croatia': { code: 'hr', name: 'Croácia' },
+  'Ghana': { code: 'gh', name: 'Gana' },
+  'Panama': { code: 'pa', name: 'Panamá' }
+};
+
+// 2. DADOS DOS GRUPOS
 const GROUPS = [
-  { letter: 'A', teams: [ {code:'mx', name:'México'}, {code:'za', name:'África do Sul'}, {code:'kr', name:'Coreia do Sul'}, {code:'cz', name:'Tchéquia'} ]},
-  { letter: 'B', teams: [ {code:'ca', name:'Canadá'}, {code:'qa', name:'Catar'}, {code:'ch', name:'Suíça'}, {code:'ba', name:'Bósnia-Herzegovina'} ]},
-  { letter: 'C', teams: [ {code:'br', name:'Brasil'}, {code:'ma', name:'Marrocos'}, {code:'ht', name:'Haiti'}, {code:'gb-sct', name:'Escócia'} ]},
-  { letter: 'D', teams: [ {code:'au', name:'Austrália'}, {code:'us', name:'EUA'}, {code:'py', name:'Paraguai'}, {code:'tr', name:'Turquia'} ]},
-  { letter: 'E', teams: [ {code:'de', name:'Alemanha'}, {code:'ci', name:'Costa do Marfim'}, {code:'cw', name:'Curaçao'}, {code:'ec', name:'Equador'} ]},
-  { letter: 'F', teams: [ {code:'nl', name:'Holanda'}, {code:'jp', name:'Japão'}, {code:'tn', name:'Tunísia'}, {code:'se', name:'Suécia'} ]},
-  { letter: 'G', teams: [ {code:'be', name:'Bélgica'}, {code:'eg', name:'Egito'}, {code:'ir', name:'Irã'}, {code:'nz', name:'Nova Zelândia'} ]},
-  { letter: 'H', teams: [ {code:'sa', name:'Arábia Saudita'}, {code:'cv', name:'Cabo Verde'}, {code:'es', name:'Espanha'}, {code:'uy', name:'Uruguai'} ]},
-  { letter: 'I', teams: [ {code:'fr', name:'França'}, {code:'no', name:'Noruega'}, {code:'sn', name:'Senegal'}, {code:'iq', name:'Iraque'} ]},
-  { letter: 'J', teams: [ {code:'ar', name:'Argentina'}, {code:'dz', name:'Argélia'}, {code:'jo', name:'Jordânia'}, {code:'at', name:'Áustria'} ]},
-  { letter: 'K', teams: [ {code:'co', name:'Colômbia'}, {code:'pt', name:'Portugal'}, {code:'uz', name:'Uzbequistão'}, {code:'cd', name:'RD Congo'} ]},
-  { letter: 'L', teams: [ {code:'hr', name:'Croácia'}, {code:'gh', name:'Gana'}, {code:'gb-eng', name:'Inglaterra'}, {code:'pa', name:'Panamá'} ]}
+  { letter: 'A', teams: ['Mexico','South Africa','South Korea','Czech Republic'] },
+  { letter: 'B', teams: ['Canada','Bosnia & Herzegovina','Qatar','Switzerland'] },
+  { letter: 'C', teams: ['Brazil','Morocco','Haiti','Scotland'] },
+  { letter: 'D', teams: ['USA','Paraguay','Australia','Turkey'] },
+  { letter: 'E', teams: ['Germany','Curaçao','Ivory Coast','Ecuador'] },
+  { letter: 'F', teams: ['Netherlands','Japan','Sweden','Tunisia'] },
+  { letter: 'G', teams: ['Belgium','Egypt','Iran','New Zealand'] },
+  { letter: 'H', teams: ['Spain','Cape Verde','Saudi Arabia','Uruguay'] },
+  { letter: 'I', teams: ['France','Senegal','Iraq','Norway'] },
+  { letter: 'J', teams: ['Argentina','Algeria','Austria','Jordan'] },
+  { letter: 'K', teams: ['Portugal','DR Congo','Uzbekistan','Colombia'] },
+  { letter: 'L', teams: ['England','Croatia','Ghana','Panama'] }
 ];
 
-const MATCH_PAIRS = [[0,1],[0,2],[0,3],[1,2],[1,3],[2,3]];
-const ALL_MATCHES = [];
-const ALL_TEAMS = [];
+// 3. MAPEAMENTO DE ESTÁDIOS
+const STADIUM_MAP = {
+  'Mexico City': 'Estádio Azteca',
+  'Guadalajara (Zapopan)': 'Estádio Akron',
+  'Monterrey (Guadalupe)': 'Estádio BBVA',
+  'Vancouver': 'BC Place',
+  'Toronto': 'BMO Field',
+  'Seattle': 'Lumen Field',
+  'San Francisco Bay Area (Santa Clara)': "Levi's Stadium",
+  'Los Angeles (Inglewood)': 'SoFi Stadium',
+  'Houston': 'NRG Stadium',
+  'Dallas (Arlington)': 'AT&T Stadium',
+  'Kansas City': 'Arrowhead Stadium',
+  'Atlanta': 'Mercedes-Benz Stadium',
+  'Miami (Miami Gardens)': 'Hard Rock Stadium',
+  'Boston (Foxborough)': 'Gillette Stadium',
+  'Philadelphia': 'Lincoln Financial Field',
+  'New York/New Jersey (East Rutherford)': 'MetLife Stadium'
+};
 
-let _matchIdx = 0;
-// Data inicial fictícia para a Copa 2026: 11 de Junho de 2026
-const startDate = new Date('2026-06-11T12:00:00Z');
+// 4. PARSER DE DATA/HORA
+function parseMatchDateTime(dateStr, timeStr) {
+  const parts = timeStr.split(' ');
+  const time = parts[0];
+  const utcPart = parts[1];
+  const offset = parseInt(utcPart.replace('UTC', ''));
+  const sign = offset >= 0 ? '+' : '-';
+  const absOffset = Math.abs(offset);
+  const offsetStr = sign + String(absOffset).padStart(2, '0') + ':00';
+  return new Date(dateStr + 'T' + time + ':00' + offsetStr);
+}
 
-GROUPS.forEach(g => {
-  g.teams.forEach(t => ALL_TEAMS.push(t));
-  MATCH_PAIRS.forEach(pair => {
-    // Distribuindo datas fictícias para gerar a aba "Próximos Jogos"
-    const matchDate = new Date(startDate.getTime() + (_matchIdx * 4 * 60 * 60 * 1000)); // 1 jogo a cada 4 horas
-    
-    ALL_MATCHES.push({
-      id: `m_${_matchIdx}`,
-      group: g.letter,
-      home: g.teams[pair[0]],
-      away: g.teams[pair[1]],
-      date: matchDate
-    });
-    _matchIdx++;
-  });
+// 5. JOGOS DA FASE DE GRUPOS — 72 jogos reais
+// Formato: [date, time, homeKey, awayKey, groupLetter, venueKey]
+const _RAW = [
+  ['2026-06-11','13:00 UTC-6','Mexico','South Africa','A','Mexico City'],
+  ['2026-06-11','20:00 UTC-6','South Korea','Czech Republic','A','Guadalajara (Zapopan)'],
+  ['2026-06-12','15:00 UTC-4','Canada','Bosnia & Herzegovina','B','Toronto'],
+  ['2026-06-12','18:00 UTC-7','USA','Paraguay','D','Los Angeles (Inglewood)'],
+  ['2026-06-13','12:00 UTC-7','Qatar','Switzerland','B','San Francisco Bay Area (Santa Clara)'],
+  ['2026-06-13','18:00 UTC-4','Brazil','Morocco','C','New York/New Jersey (East Rutherford)'],
+  ['2026-06-13','21:00 UTC-4','Haiti','Scotland','C','Boston (Foxborough)'],
+  ['2026-06-13','21:00 UTC-7','Australia','Turkey','D','Vancouver'],
+  ['2026-06-14','12:00 UTC-5','Germany','Curaçao','E','Houston'],
+  ['2026-06-14','15:00 UTC-5','Netherlands','Japan','F','Dallas (Arlington)'],
+  ['2026-06-14','19:00 UTC-4','Ivory Coast','Ecuador','E','Philadelphia'],
+  ['2026-06-14','20:00 UTC-6','Sweden','Tunisia','F','Monterrey (Guadalupe)'],
+  ['2026-06-15','12:00 UTC-7','Belgium','Egypt','G','Seattle'],
+  ['2026-06-15','12:00 UTC-4','Spain','Cape Verde','H','Atlanta'],
+  ['2026-06-15','18:00 UTC-7','Iran','New Zealand','G','Los Angeles (Inglewood)'],
+  ['2026-06-15','18:00 UTC-4','Saudi Arabia','Uruguay','H','Miami (Miami Gardens)'],
+  ['2026-06-16','15:00 UTC-4','France','Senegal','I','New York/New Jersey (East Rutherford)'],
+  ['2026-06-16','18:00 UTC-4','Iraq','Norway','I','Boston (Foxborough)'],
+  ['2026-06-16','20:00 UTC-5','Argentina','Algeria','J','Kansas City'],
+  ['2026-06-16','21:00 UTC-7','Austria','Jordan','J','San Francisco Bay Area (Santa Clara)'],
+  ['2026-06-17','12:00 UTC-5','Portugal','DR Congo','K','Houston'],
+  ['2026-06-17','15:00 UTC-5','England','Croatia','L','Dallas (Arlington)'],
+  ['2026-06-17','19:00 UTC-4','Ghana','Panama','L','Toronto'],
+  ['2026-06-17','20:00 UTC-6','Uzbekistan','Colombia','K','Mexico City'],
+  ['2026-06-18','12:00 UTC-4','Czech Republic','South Africa','A','Atlanta'],
+  ['2026-06-18','12:00 UTC-7','Switzerland','Bosnia & Herzegovina','B','Los Angeles (Inglewood)'],
+  ['2026-06-18','15:00 UTC-7','Canada','Qatar','B','Vancouver'],
+  ['2026-06-18','19:00 UTC-6','Mexico','South Korea','A','Guadalajara (Zapopan)'],
+  ['2026-06-19','12:00 UTC-7','USA','Australia','D','Seattle'],
+  ['2026-06-19','18:00 UTC-4','Scotland','Morocco','C','Boston (Foxborough)'],
+  ['2026-06-19','20:00 UTC-7','Turkey','Paraguay','D','San Francisco Bay Area (Santa Clara)'],
+  ['2026-06-19','20:30 UTC-4','Brazil','Haiti','C','Philadelphia'],
+  ['2026-06-20','12:00 UTC-5','Netherlands','Sweden','F','Houston'],
+  ['2026-06-20','16:00 UTC-4','Germany','Ivory Coast','E','Toronto'],
+  ['2026-06-20','19:00 UTC-5','Ecuador','Curaçao','E','Kansas City'],
+  ['2026-06-20','22:00 UTC-6','Tunisia','Japan','F','Monterrey (Guadalupe)'],
+  ['2026-06-21','12:00 UTC-7','Belgium','Iran','G','Los Angeles (Inglewood)'],
+  ['2026-06-21','12:00 UTC-4','Spain','Saudi Arabia','H','Atlanta'],
+  ['2026-06-21','18:00 UTC-7','New Zealand','Egypt','G','Vancouver'],
+  ['2026-06-21','18:00 UTC-4','Uruguay','Cape Verde','H','Miami (Miami Gardens)'],
+  ['2026-06-22','12:00 UTC-5','Argentina','Austria','J','Dallas (Arlington)'],
+  ['2026-06-22','17:00 UTC-4','France','Iraq','I','Philadelphia'],
+  ['2026-06-22','20:00 UTC-4','Norway','Senegal','I','New York/New Jersey (East Rutherford)'],
+  ['2026-06-22','20:00 UTC-7','Jordan','Algeria','J','San Francisco Bay Area (Santa Clara)'],
+  ['2026-06-23','12:00 UTC-5','Portugal','Uzbekistan','K','Houston'],
+  ['2026-06-23','16:00 UTC-4','England','Ghana','L','Boston (Foxborough)'],
+  ['2026-06-23','19:00 UTC-4','Panama','Croatia','L','Toronto'],
+  ['2026-06-23','20:00 UTC-6','Colombia','DR Congo','K','Guadalajara (Zapopan)'],
+  ['2026-06-24','12:00 UTC-7','Switzerland','Canada','B','Vancouver'],
+  ['2026-06-24','12:00 UTC-7','Bosnia & Herzegovina','Qatar','B','Seattle'],
+  ['2026-06-24','18:00 UTC-4','Scotland','Brazil','C','Miami (Miami Gardens)'],
+  ['2026-06-24','18:00 UTC-4','Morocco','Haiti','C','Atlanta'],
+  ['2026-06-24','19:00 UTC-6','Czech Republic','Mexico','A','Mexico City'],
+  ['2026-06-24','19:00 UTC-6','South Africa','South Korea','A','Monterrey (Guadalupe)'],
+  ['2026-06-25','16:00 UTC-4','Curaçao','Ivory Coast','E','Philadelphia'],
+  ['2026-06-25','16:00 UTC-4','Ecuador','Germany','E','New York/New Jersey (East Rutherford)'],
+  ['2026-06-25','18:00 UTC-5','Japan','Sweden','F','Dallas (Arlington)'],
+  ['2026-06-25','18:00 UTC-5','Tunisia','Netherlands','F','Kansas City'],
+  ['2026-06-25','19:00 UTC-7','Turkey','USA','D','Los Angeles (Inglewood)'],
+  ['2026-06-25','19:00 UTC-7','Paraguay','Australia','D','San Francisco Bay Area (Santa Clara)'],
+  ['2026-06-26','15:00 UTC-4','Norway','France','I','Boston (Foxborough)'],
+  ['2026-06-26','15:00 UTC-4','Senegal','Iraq','I','Toronto'],
+  ['2026-06-26','18:00 UTC-6','Uruguay','Spain','H','Guadalajara (Zapopan)'],
+  ['2026-06-26','19:00 UTC-5','Cape Verde','Saudi Arabia','H','Houston'],
+  ['2026-06-26','20:00 UTC-7','Egypt','Iran','G','Seattle'],
+  ['2026-06-26','20:00 UTC-7','New Zealand','Belgium','G','Vancouver'],
+  ['2026-06-27','17:00 UTC-4','Panama','England','L','New York/New Jersey (East Rutherford)'],
+  ['2026-06-27','17:00 UTC-4','Croatia','Ghana','L','Philadelphia'],
+  ['2026-06-27','19:30 UTC-4','Colombia','Portugal','K','Miami (Miami Gardens)'],
+  ['2026-06-27','19:30 UTC-4','DR Congo','Uzbekistan','K','Atlanta'],
+  ['2026-06-27','21:00 UTC-5','Algeria','Austria','J','Kansas City'],
+  ['2026-06-27','21:00 UTC-5','Jordan','Argentina','J','Dallas (Arlington)']
+];
+
+// 6. CONSTRUIR ARRAYS FINAIS
+const ALL_MATCHES = _RAW.map(function(r, i) {
+  return {
+    id: 'm_' + i,
+    group: r[4],
+    home: TEAM_MAP[r[2]],
+    away: TEAM_MAP[r[3]],
+    date: parseMatchDateTime(r[0], r[1]),
+    dateStr: r[0],
+    ground: r[5],
+    stadium: STADIUM_MAP[r[5]] || r[5]
+  };
+}).sort(function(a, b) { return a.date - b.date; });
+
+const ALL_TEAMS = Object.values(TEAM_MAP).sort(function(a, b) {
+  return a.name.localeCompare(b.name);
 });
-ALL_TEAMS.sort((a,b) => a.name.localeCompare(b.name));
 
-// 2. CONFIGURAÇÃO FIREBASE
-// COLOQUE SUAS CREDENCIAIS AQUI
+// 7. CONFIGURAÇÃO FIREBASE
 const firebaseConfig = {
   // apiKey: "API_KEY",
   // authDomain: "PROJECT_ID.firebaseapp.com",
@@ -55,7 +207,6 @@ const firebaseConfig = {
   // appId: "APP_ID"
 };
 
-// Inicialização segura
 let db = null;
 if (typeof firebase !== 'undefined' && firebaseConfig.apiKey) {
   try {
@@ -67,57 +218,44 @@ if (typeof firebase !== 'undefined' && firebaseConfig.apiKey) {
   }
 }
 
-// 3. API DO BANCO DE DADOS (Wrapper para LocalStorage fallback)
+// 8. API DO BANCO DE DADOS
 const dbAPI = {
-  // SALVAR PALPITE JOGO
   savePick: async (userId, userName, matchId, home, away) => {
-    // LocalStorage Fallback sempre ativo
-    let localData = JSON.parse(localStorage.getItem(`user_${userId}`) || '{"picks":{}, "bonus":{}}');
+    let localData = JSON.parse(localStorage.getItem('user_' + userId) || '{"picks":{}, "bonus":{}}');
     localData.name = userName;
-    localData.picks[matchId] = { home, away };
-    localStorage.setItem(`user_${userId}`, JSON.stringify(localData));
-
-    // Firebase Save
+    localData.picks[matchId] = { home: home, away: away };
+    localStorage.setItem('user_' + userId, JSON.stringify(localData));
     if (db) {
       await db.collection('users').doc(userId).set({
         name: userName,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       }, {merge: true});
-      
-      await db.collection('users').doc(userId).collection('picks').doc(matchId).set({
-        home, away
-      });
+      await db.collection('users').doc(userId).collection('picks').doc(matchId).set({ home: home, away: away });
     }
   },
 
-  // SALVAR BÔNUS
   saveBonus: async (userId, userName, bonusKey, value) => {
-    let localData = JSON.parse(localStorage.getItem(`user_${userId}`) || '{"picks":{}, "bonus":{}}');
+    let localData = JSON.parse(localStorage.getItem('user_' + userId) || '{"picks":{}, "bonus":{}}');
     localData.name = userName;
     localData.bonus[bonusKey] = value;
-    localStorage.setItem(`user_${userId}`, JSON.stringify(localData));
-
+    localStorage.setItem('user_' + userId, JSON.stringify(localData));
     if (db) {
       await db.collection('users').doc(userId).set({
         name: userName,
-        [`bonus_${bonusKey}`]: value,
+        ['bonus_' + bonusKey]: value,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       }, {merge: true});
     }
   },
 
-  // PEGAR DADOS DO USUÁRIO ATUAL
   getUserData: async (userId) => {
-    const localData = JSON.parse(localStorage.getItem(`user_${userId}`) || '{"picks":{}, "bonus":{}}');
+    const localData = JSON.parse(localStorage.getItem('user_' + userId) || '{"picks":{}, "bonus":{}}');
     if (!db) return localData;
-
     try {
       const picksSnap = await db.collection('users').doc(userId).collection('picks').get();
       const userSnap = await db.collection('users').doc(userId).get();
-      
       const picks = {};
-      picksSnap.forEach(doc => picks[doc.id] = doc.data());
-      
+      picksSnap.forEach(function(doc) { picks[doc.id] = doc.data(); });
       const userData = userSnap.data() || {};
       const bonus = {
         campeao: userData.bonus_campeao || '',
@@ -125,26 +263,22 @@ const dbAPI = {
         ataque: userData.bonus_ataque || '',
         decepcao: userData.bonus_decepcao || ''
       };
-
-      return { picks, bonus };
+      return { picks: picks, bonus: bonus };
     } catch(e) {
       console.error(e);
       return localData;
     }
   },
 
-  // ADMIN: SALVAR RESULTADOS
   saveResult: async (resultsObj) => {
     let local = JSON.parse(localStorage.getItem('official_results') || '{}');
     Object.assign(local, resultsObj);
     localStorage.setItem('official_results', JSON.stringify(local));
-
     if (db) {
       await db.collection('meta').doc('results').set(resultsObj, {merge: true});
     }
   },
 
-  // PEGAR RESULTADOS OFICIAIS
   getResults: async () => {
     if (!db) return JSON.parse(localStorage.getItem('official_results') || '{}');
     try {
@@ -155,24 +289,17 @@ const dbAPI = {
     }
   },
 
-  // LISTENER DO RANKING E RESULTADOS (Real-time)
   listenToUpdates: (callback) => {
-    if (!db) return; // Em modo local não há real-time push entre abas facilmente
-    
-    // Escuta resultados mudando
-    db.collection('meta').doc('results').onSnapshot(snap => {
+    if (!db) return;
+    db.collection('meta').doc('results').onSnapshot(function(snap) {
       const results = snap.exists ? snap.data() : {};
-      
-      // Quando os resultados mudam, pegamos os palpites de todos para recalcular o ranking
-      db.collection('users').get().then(async usersSnap => {
+      db.collection('users').get().then(async function(usersSnap) {
         const ranking = [];
         for (let userDoc of usersSnap.docs) {
           const userData = userDoc.data();
           const picksSnap = await db.collection('users').doc(userDoc.id).collection('picks').get();
-          
           let exato = 0, vencedor = 0, pts = 0;
-          
-          picksSnap.forEach(pickDoc => {
+          picksSnap.forEach(function(pickDoc) {
             const mId = pickDoc.id;
             const p = pickDoc.data();
             const r = results[mId];
@@ -188,18 +315,9 @@ const dbAPI = {
               }
             }
           });
-
-          // Bônus mock simplificado (na vida real admin preencheria tb)
-          // Aqui, apenas os jogos.
-
-          ranking.push({
-            id: userDoc.id,
-            name: userData.name || 'Anônimo',
-            pts, exato, vencedor
-          });
+          ranking.push({ id: userDoc.id, name: userData.name || 'Anônimo', pts: pts, exato: exato, vencedor: vencedor });
         }
-
-        ranking.sort((a,b) => b.pts - a.pts || b.exato - a.exato);
+        ranking.sort(function(a, b) { return b.pts - a.pts || b.exato - a.exato; });
         callback(ranking, results);
       });
     });

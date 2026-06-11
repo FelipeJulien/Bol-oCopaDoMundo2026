@@ -76,7 +76,8 @@
       <!-- NAVIGATION TABS -->
       <nav class="tabs-nav">
         <button class="tab-btn active" data-target="tab-proximos">Próximos Jogos</button>
-        <button class="tab-btn" data-target="tab-grupos">Fase de Grupos</button>
+        <button class="tab-btn" data-target="tab-jogos">Todos os Jogos</button>
+        <button class="tab-btn" data-target="tab-grupos">Grupos</button>
         <button class="tab-btn" data-target="tab-matamata">Mata-Mata</button>
         <button class="tab-btn" data-target="tab-bonus">Bônus</button>
       </nav>
@@ -93,10 +94,19 @@
           </div>
         </section>
 
-        <!-- ABA: FASE DE GRUPOS -->
+        <!-- ABA: TODOS OS JOGOS -->
+        <section id="tab-jogos" class="tab-pane">
+          <h2 class="section-title">Todos os Jogos</h2>
+          <p class="section-desc">Todos os 72 jogos da fase de grupos em ordem cronológica. Seus palpites são salvos automaticamente.</p>
+          <div id="jogos-container">
+            <!-- Renderizado via JS -->
+          </div>
+        </section>
+
+        <!-- ABA: GRUPOS -->
         <section id="tab-grupos" class="tab-pane">
-          <h2 class="section-title">Fase de Grupos</h2>
-          <p class="section-desc">Todos os 72 jogos da primeira fase. Seus palpites são salvos automaticamente.</p>
+          <h2 class="section-title">Classificação dos Grupos</h2>
+          <p class="section-desc">Acompanhe a classificação dos 12 grupos da Copa do Mundo 2026. Atualizada com os resultados oficiais.</p>
           <div id="grupos-container">
             <!-- Renderizado via JS -->
           </div>
