@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin | Bolão Copa 2026</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .admin-container {
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+    .admin-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--primary);
+    }
+    .btn-outline {
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 8px 16px;
+      border-radius: var(--radius);
+      font-size: 0.9rem;
+    }
+    .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+    .status-toast {
+      position: fixed;
+      bottom: 20px; right: 20px;
+      background: var(--success); color: #000;
+      padding: 10px 20px; border-radius: var(--radius);
+      font-weight: bold; display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ADMIN AUTH -->
+  <div id="admin-login-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-logo">ADMIN AREA</div>
+      <p class="modal-desc">Digite a senha para acessar o painel de resultados (Padrão: admin2026)</p>
+      <input type="password" id="admin-pwd-input" class="modal-input" placeholder="Senha...">
+      <button id="btn-admin-login" class="btn-primary">Acessar</button>
+    </div>
+  </div>
+
+  <div class="admin-container" id="admin-panel" style="display:none;">
+    <div class="admin-header">
+      <h1 class="condensed" style="color:var(--primary); font-size:2rem;">Painel de Resultados (Gabarito)</h1>
+      <a href="index.html" class="btn-outline">← Voltar pro Bolão</a>
+    </div>
+
+    <p style="color:var(--text-muted); margin-bottom: 20px;">
+      Insira aqui os placares oficiais dos jogos reais. O sistema vai auto-salvar e todos os usuários online terão o ranking recalculado em tempo real.
+    </p>
+
+    <!-- CONTAINER DE JOGOS ADMIN -->
+    <div id="admin-jogos-container"></div>
+  </div>
+
+  <div id="admin-toast" class="status-toast">Salvo com sucesso ✓</div>
+
+  <!-- FIREBASE SDK (Compat Version) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <!-- SCRIPTS -->
+  <script src="js/db.js"></script>
+  <script>
+    // Admin simple auth
+    const modal = document.getElementById('admin-login-modal');
+    const panel = document.getElementById('admin-panel');
+    
+    document.getElementById('btn-admin-login').addEventListener('click', () => {
+      if (document.getElementById('admin-pwd-input').value === 'admin2026') {
+        modal.classList.add('hidden');
+        panel.style.display = 'block';
+        initAdmin();
+      } else {
+        alert('Senha incorreta!');
+      }
+    });
+
+    // Render logic for Admin
+    function initAdmin() {
+      // Firebase deve ser inicializado pelo db.js automaticamente se tiver as configs.
+      const container = document.getElementById('admin-jogos-container');
+      container.innerHTML = '<p>Carregando jogos...</p>';
+      
+      // db.js must expose ALL_MATCHES
+      setTimeout(() => {
+        if (typeof ALL_MATCHES === 'undefined') {
+          container.innerHTML = '<p style="color:red">Erro: db.js não carregou corretamente as informações dos times.</p>';
+          return;
+        }
+
+        let html = '';
+        ALL_MATCHES.forEach(match => {
+          html += `
+            <div class="match-card">
+              <div class="match-date">Grupo ${match.group}</div>
+              <div class="match-teams">
+                <div class="team home">
+                  <span class="team-name">${match.home.name}</span>
+                  <img src="https://flagcdn.com/w40/${match.home.code}.png" class="flag-img" alt="${match.home.name}">
+                </div>
+                <div class="score-area">
+                  <input type="number" class="score-input admin-input" data-match="${match.id}" data-side="home" min="0" max="20" id="res-home-${match.id}">
+                  <span class="vs-text">×</span>
+                  <input type="number" class="score-input admin-input" data-match="${match.id}" data-side="away" min="0" max="20" id="res-away-${match.id}">
+                  <div class="save-status" id="status-${match.id}">✓</div>
+                </div>
+                <div class="team away">
+                  <img src="https://flagcdn.com/w40/${match.away.code}.png" class="flag-img" alt="${match.away.name}">
+                  <span class="team-name">${match.away.name}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        container.innerHTML = html;
+
+        // Load existing results
+        dbAPI.getResults().then(results => {
+          Object.keys(results).forEach(matchId => {
+            const h = document.getElementById(`res-home-${matchId}`);
+            const a = document.getElementById(`res-away-${matchId}`);
+            if (h && a && results[matchId].home !== undefined) {
+              h.value = results[matchId].home;
+              a.value = results[matchId].away;
+            }
+          });
+        });
+
+        // Add auto-save listeners
+        document.querySelectorAll('.admin-input').forEach(input => {
+          input.addEventListener('change', (e) => {
+            const matchId = e.target.getAttribute('data-match');
+            const hVal = document.getElementById(`res-home-${matchId}`).value;
+            const aVal = document.getElementById(`res-away-${matchId}`).value;
+            
+            if (hVal !== '' && aVal !== '') {
+              // Salvar
+              const resultsObj = {};
+              resultsObj[matchId] = { home: parseInt(hVal), away: parseInt(aVal) };
+              dbAPI.saveResult(resultsObj).then(() => {
+                const status = document.getElementById(`status-${matchId}`);
+                status.classList.add('show');
+                setTimeout(() => status.classList.remove('show'), 2000);
+                
+                const toast = document.getElementById('admin-toast');
+                toast.style.display = 'block';
+                setTimeout(() => toast.style.display = 'none', 2000);
+              });
+            }
+          });
+        });
+
+      }, 500); // wait for script loads
+    }
+  </script>
+</body>
+</html>

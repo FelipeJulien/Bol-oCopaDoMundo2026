@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bolão Copa 2026 | Dashboard</title>
+  
+  <!-- Fontes -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- CSS Global -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- MODAL DE LOGIN -->
+  <div id="login-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-logo">BOLÃO 2026</div>
+      <p class="modal-desc">Identifique-se com seu Nome de Guerra para entrar no bolão.</p>
+      <input type="text" id="auth-name-input" class="modal-input" placeholder="Seu nome..." maxlength="30" autocomplete="off">
+      <button id="btn-login" class="btn-primary">Entrar no Dashboard</button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD LAYOUT -->
+  <div class="dashboard-layout" id="app-container" style="display:none;">
+    
+    <!-- SIDEBAR (RANKING) -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">BOLÃO 2026</div>
+      </div>
+      <div class="sidebar-content">
+        <h3 class="sidebar-title">
+          <span>🏆 Top 5 Ranking</span>
+          <span style="font-size:0.8rem; color:var(--text-dim);">(Ao vivo)</span>
+        </h3>
+        <div class="ranking-list" id="ranking-container">
+          <!-- Renderizado via JS -->
+          <div style="color:var(--text-muted); font-size:0.85rem;">Carregando ranking...</div>
+        </div>
+      </div>
+      <div class="sidebar-footer">
+        <button class="btn-rules" onclick="alert('Regras:\n- Placar exato: 3 pts\n- Vencedor/Empate: 1 pt\n- Palpites Bônus: 5 pts cada')">Ler Regras</button>
+      </div>
+    </aside>
+
+    <!-- MAIN WRAPPER -->
+    <div class="main-wrapper">
+      <div class="watermark">26</div>
+
+      <!-- HEADER -->
+      <header class="main-header">
+        <div class="header-left">
+          <button class="mobile-toggle" id="btn-mobile-toggle">☰</button>
+          <div class="countdown">
+            <div class="countdown-box"><span class="cd-val" id="cd-days">00</span><span class="cd-lbl">Dias</span></div>
+            <div class="countdown-box"><span class="cd-val" id="cd-hours">00</span><span class="cd-lbl">Hrs</span></div>
+            <div class="countdown-box"><span class="cd-val" id="cd-mins">00</span><span class="cd-lbl">Min</span></div>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="user-info">
+            <div>
+              <div class="user-role">Você é:</div>
+              <div class="user-name" id="display-user-name">Carregando...</div>
+            </div>
+            <button class="btn-switch" id="btn-logout">Sair</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- NAVIGATION TABS -->
+      <nav class="tabs-nav">
+        <button class="tab-btn active" data-target="tab-proximos">Próximos Jogos</button>
+        <button class="tab-btn" data-target="tab-grupos">Fase de Grupos</button>
+        <button class="tab-btn" data-target="tab-matamata">Mata-Mata</button>
+        <button class="tab-btn" data-target="tab-bonus">Bônus</button>
+      </nav>
+
+      <!-- CONTENT AREA -->
+      <main class="main-content">
+        
+        <!-- ABA: PRÓXIMOS JOGOS -->
+        <section id="tab-proximos" class="tab-pane active">
+          <h2 class="section-title">Próximos Jogos</h2>
+          <p class="section-desc">Partidas agendadas para os próximos 3 dias.</p>
+          <div id="proximos-container">
+            <!-- Renderizado via JS -->
+          </div>
+        </section>
+
+        <!-- ABA: FASE DE GRUPOS -->
+        <section id="tab-grupos" class="tab-pane">
+          <h2 class="section-title">Fase de Grupos</h2>
+          <p class="section-desc">Todos os 72 jogos da primeira fase. Seus palpites são salvos automaticamente.</p>
+          <div id="grupos-container">
+            <!-- Renderizado via JS -->
+          </div>
+        </section>
+
+        <!-- ABA: MATA-MATA -->
+        <section id="tab-matamata" class="tab-pane">
+          <div class="locked-view">
+            <div class="icon">🔒</div>
+            <h3 class="condensed">Mata-Mata Bloqueado</h3>
+            <p style="color:var(--text-muted); margin-top:10px; max-width:400px;">Atenção: Esta interface de chaves será liberada após o encerramento definitivo da fase de grupos.</p>
+          </div>
+        </section>
+
+        <!-- ABA: BÔNUS -->
+        <section id="tab-bonus" class="tab-pane">
+          <h2 class="section-title">Palpites Especiais (Bônus)</h2>
+          <p class="section-desc" style="color:var(--primary);">Atenção: os palpites bônus valem 5 pontos cada e serão travados no início do primeiro jogo da Copa.</p>
+          
+          <div class="bonus-grid">
+            <!-- Campeão -->
+            <div class="bonus-card">
+              <h3 class="condensed">🏆 Campeão do Mundo</h3>
+              <p>Qual seleção levantará a taça?</p>
+              <div class="custom-select-wrapper">
+                <select class="custom-select bonus-input" id="bonus-campeao" data-bonus="campeao">
+                  <option value="">Selecione...</option>
+                  <!-- Opções via JS -->
+                </select>
+              </div>
+            </div>
+            
+            <!-- Artilheiro -->
+            <div class="bonus-card">
+              <h3 class="condensed">⚽ Artilheiro da Copa</h3>
+              <p>Digite o nome do jogador (Ex: Mbappé, Vini Jr).</p>
+              <input type="text" class="custom-input bonus-input" id="bonus-artilheiro" data-bonus="artilheiro" placeholder="Nome do jogador..." maxlength="40">
+            </div>
+
+            <!-- Melhor Ataque -->
+            <div class="bonus-card">
+              <h3 class="condensed">🚀 Melhor Ataque</h3>
+              <p>Qual seleção fará mais gols no torneio?</p>
+              <div class="custom-select-wrapper">
+                <select class="custom-select bonus-input" id="bonus-ataque" data-bonus="ataque">
+                  <option value="">Selecione...</option>
+                  <!-- Opções via JS -->
+                </select>
+              </div>
+            </div>
+
+            <!-- Decepção -->
+            <div class="bonus-card">
+              <h3 class="condensed">😬 Decepção da Copa</h3>
+              <p>Qual favorita vai cair cedo e frustrar a todos?</p>
+              <div class="custom-select-wrapper">
+                <select class="custom-select bonus-input" id="bonus-decepcao" data-bonus="decepcao">
+                  <option value="">Selecione...</option>
+                  <!-- Opções via JS -->
+                </select>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- FIREBASE SDK (Compat Version) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <!-- LÓGICA DA APLICAÇÃO (Modularizada) -->
+  <script src="js/db.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
