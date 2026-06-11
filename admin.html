@@ -7,166 +7,167 @@
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/styles.css">
-  <style>
-    .admin-container {
-      max-width: 800px;
-      margin: 40px auto;
-      padding: 20px;
-    }
-    .admin-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 30px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid var(--primary);
-    }
-    .btn-outline {
-      border: 1px solid var(--border);
-      color: var(--text-main);
-      padding: 8px 16px;
-      border-radius: var(--radius);
-      font-size: 0.9rem;
-    }
-    .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
-    .status-toast {
-      position: fixed;
-      bottom: 20px; right: 20px;
-      background: var(--success); color: #000;
-      padding: 10px 20px; border-radius: var(--radius);
-      font-weight: bold; display: none;
-    }
-  </style>
+  <!-- Use isolated admin styles -->
+  <link rel="stylesheet" href="css/admin.css">
 </head>
 <body>
 
-  <!-- ADMIN AUTH -->
+  <!-- ADMIN AUTH MODAL -->
   <div id="admin-login-modal" class="modal-overlay">
     <div class="modal-content">
-      <div class="modal-logo">ADMIN AREA</div>
-      <p class="modal-desc">Digite a senha para acessar o painel de resultados (Padrão: admin2026)</p>
-      <input type="password" id="admin-pwd-input" class="modal-input" placeholder="Senha...">
-      <button id="btn-admin-login" class="btn-primary">Acessar</button>
+      <h2 class="condensed" style="color: var(--admin-primary); font-size: 2.5rem; margin-top: 0;">ACESSO RESTRITO</h2>
+      <p style="color: var(--admin-muted); margin-bottom: 24px;">Insira suas credenciais de administrador.</p>
+      <input type="text" id="admin-user-input" class="modal-input" placeholder="Usuário">
+      <input type="password" id="admin-pwd-input" class="modal-input" placeholder="Senha">
+      <button id="btn-admin-login" class="btn-admin primary" style="width: 100%; padding: 12px; font-size: 1rem;">ACESSAR PAINEL</button>
+      <div id="admin-login-error" style="color: var(--admin-primary); margin-top: 12px; display: none;">Credenciais inválidas.</div>
     </div>
   </div>
 
-  <div class="admin-container" id="admin-panel" style="display:none;">
-    <div class="admin-header">
-      <h1 class="condensed" style="color:var(--primary); font-size:2rem;">Painel de Resultados (Gabarito)</h1>
-      <a href="index.html" class="btn-outline">← Voltar pro Bolão</a>
+  <!-- ADMIN PANEL (Hidden by default) -->
+  <div id="admin-panel" style="display: none; height: 100vh; flex-direction: column;">
+    
+    <!-- TOP BAR -->
+    <header class="admin-top-bar">
+      <h1 class="condensed">MODO ADMINISTRADOR — BOLÃO 2026</h1>
+      <button id="btn-admin-logout" class="btn-logout">Sair do Painel</button>
+    </header>
+
+    <!-- LAYOUT -->
+    <div class="admin-layout">
+      <!-- SIDEBAR -->
+      <aside class="admin-sidebar">
+        <ul class="admin-menu">
+          <li><button class="menu-btn active" data-target="sec-jogos">Jogos (Resultados)</button></li>
+          <li><button class="menu-btn" data-target="sec-apostas">Apostas (Edição)</button></li>
+          <li><button class="menu-btn" data-target="sec-usuarios">Usuários</button></li>
+          <li><button class="menu-btn" data-target="sec-ranking">Ranking Geral</button></li>
+        </ul>
+      </aside>
+
+      <!-- MAIN CONTENT -->
+      <main class="admin-content">
+        
+        <!-- SEÇÃO: JOGOS -->
+        <section id="sec-jogos" class="admin-section active">
+          <h2 class="section-title condensed">Gerenciar Jogos e Resultados</h2>
+          <p style="color: var(--admin-muted); margin-bottom: 24px;">Lance o placar oficial para encerrar o jogo e disparar o cálculo de pontos automático para todos os usuários.</p>
+          <div id="admin-jogos-list">
+            Carregando jogos...
+          </div>
+        </section>
+
+        <!-- SEÇÃO: APOSTAS -->
+        <section id="sec-apostas" class="admin-section">
+          <h2 class="section-title condensed">Edição Manual de Apostas</h2>
+          <div class="filters-bar">
+            <select id="filter-game">
+              <option value="">Selecione um Jogo...</option>
+            </select>
+            <input type="text" id="filter-user" placeholder="Buscar por usuário...">
+            <button class="btn-admin" id="btn-add-bet">Adicionar Aposta Manual</button>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Usuário</th>
+                <th>Jogo</th>
+                <th>Aposta</th>
+                <th>Pts Ganhos</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="admin-apostas-tbody">
+              <tr><td colspan="5" style="text-align: center;">Selecione um jogo no filtro acima.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- SEÇÃO: USUÁRIOS -->
+        <section id="sec-usuarios" class="admin-section">
+          <h2 class="section-title condensed">Gerenciamento de Usuários</h2>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Nome de Guerra</th>
+                <th>Total Pts</th>
+                <th>🎯 Exatos</th>
+                <th>✓ Vencedores</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="admin-usuarios-tbody">
+              <tr><td colspan="5">Carregando usuários...</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- SEÇÃO: RANKING -->
+        <section id="sec-ranking" class="admin-section">
+          <h2 class="section-title condensed">Ranking Geral e Relatórios</h2>
+          <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+            <button class="btn-admin primary" id="btn-recalc-all">Recalcular Ranking Completo</button>
+            <button class="btn-admin" id="btn-export-csv">Exportar Ranking CSV</button>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Pos</th>
+                <th>Usuário</th>
+                <th>Pontuação</th>
+                <th>Detalhamento</th>
+              </tr>
+            </thead>
+            <tbody id="admin-ranking-tbody">
+              <tr><td colspan="4">Carregando ranking...</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+      </main>
     </div>
-
-    <p style="color:var(--text-muted); margin-bottom: 20px;">
-      Insira aqui os placares oficiais dos jogos reais. O sistema vai auto-salvar e todos os usuários online terão o ranking recalculado em tempo real.
-    </p>
-
-    <!-- CONTAINER DE JOGOS ADMIN -->
-    <div id="admin-jogos-container"></div>
   </div>
 
-  <div id="admin-toast" class="status-toast">Salvo com sucesso ✓</div>
+  <!-- MODAL EDIÇÃO APOSTA -->
+  <div id="modal-edit-bet" class="modal-overlay hidden">
+    <div class="modal-content modal-inner">
+      <h3 style="margin-top:0; color:var(--admin-primary);">Editar Aposta</h3>
+      <div class="form-group">
+        <label>Usuário</label>
+        <input type="text" id="edit-bet-user" class="modal-input" disabled>
+        <input type="hidden" id="edit-bet-userid">
+      </div>
+      <div class="form-group">
+        <label>Jogo</label>
+        <input type="text" id="edit-bet-game" class="modal-input" disabled>
+        <input type="hidden" id="edit-bet-gameid">
+      </div>
+      <div class="form-group" style="display:flex; gap:16px; align-items:center;">
+        <div>
+          <label>Casa</label>
+          <input type="number" id="edit-bet-home" class="modal-input" style="width:80px;">
+        </div>
+        <span style="font-size:1.5rem; margin-top:10px;">×</span>
+        <div>
+          <label>Fora</label>
+          <input type="number" id="edit-bet-away" class="modal-input" style="width:80px;">
+        </div>
+      </div>
+      <div style="display:flex; justify-content:space-between; margin-top:24px;">
+        <button class="btn-admin danger" id="btn-cancel-edit">Cancelar</button>
+        <button class="btn-admin primary" id="btn-save-edit">Salvar Aposta</button>
+      </div>
+    </div>
+  </div>
 
-  <!-- FIREBASE SDK (Compat Version) -->
+  <!-- FIREBASE SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
   <!-- SCRIPTS -->
   <script src="js/db.js"></script>
-  <script>
-    // Admin simple auth
-    const modal = document.getElementById('admin-login-modal');
-    const panel = document.getElementById('admin-panel');
-    
-    document.getElementById('btn-admin-login').addEventListener('click', () => {
-      if (document.getElementById('admin-pwd-input').value === 'admin2026') {
-        modal.classList.add('hidden');
-        panel.style.display = 'block';
-        initAdmin();
-      } else {
-        alert('Senha incorreta!');
-      }
-    });
-
-    // Render logic for Admin
-    function initAdmin() {
-      // Firebase deve ser inicializado pelo db.js automaticamente se tiver as configs.
-      const container = document.getElementById('admin-jogos-container');
-      container.innerHTML = '<p>Carregando jogos...</p>';
-      
-      // db.js must expose ALL_MATCHES
-      setTimeout(() => {
-        if (typeof ALL_MATCHES === 'undefined') {
-          container.innerHTML = '<p style="color:red">Erro: db.js não carregou corretamente as informações dos times.</p>';
-          return;
-        }
-
-        let html = '';
-        ALL_MATCHES.forEach(match => {
-          html += `
-            <div class="match-card">
-              <div class="match-date">Grupo ${match.group}</div>
-              <div class="match-teams">
-                <div class="team home">
-                  <span class="team-name">${match.home.name}</span>
-                  <img src="https://flagcdn.com/w40/${match.home.code}.png" class="flag-img" alt="${match.home.name}">
-                </div>
-                <div class="score-area">
-                  <input type="number" class="score-input admin-input" data-match="${match.id}" data-side="home" min="0" max="20" id="res-home-${match.id}">
-                  <span class="vs-text">×</span>
-                  <input type="number" class="score-input admin-input" data-match="${match.id}" data-side="away" min="0" max="20" id="res-away-${match.id}">
-                  <div class="save-status" id="status-${match.id}">✓</div>
-                </div>
-                <div class="team away">
-                  <img src="https://flagcdn.com/w40/${match.away.code}.png" class="flag-img" alt="${match.away.name}">
-                  <span class="team-name">${match.away.name}</span>
-                </div>
-              </div>
-            </div>
-          `;
-        });
-        container.innerHTML = html;
-
-        // Load existing results
-        dbAPI.getResults().then(results => {
-          Object.keys(results).forEach(matchId => {
-            const h = document.getElementById(`res-home-${matchId}`);
-            const a = document.getElementById(`res-away-${matchId}`);
-            if (h && a && results[matchId].home !== undefined) {
-              h.value = results[matchId].home;
-              a.value = results[matchId].away;
-            }
-          });
-        });
-
-        // Add auto-save listeners
-        document.querySelectorAll('.admin-input').forEach(input => {
-          input.addEventListener('change', (e) => {
-            const matchId = e.target.getAttribute('data-match');
-            const hVal = document.getElementById(`res-home-${matchId}`).value;
-            const aVal = document.getElementById(`res-away-${matchId}`).value;
-            
-            if (hVal !== '' && aVal !== '') {
-              // Salvar
-              const resultsObj = {};
-              resultsObj[matchId] = { home: parseInt(hVal), away: parseInt(aVal) };
-              dbAPI.saveResult(resultsObj).then(() => {
-                const status = document.getElementById(`status-${matchId}`);
-                status.classList.add('show');
-                setTimeout(() => status.classList.remove('show'), 2000);
-                
-                const toast = document.getElementById('admin-toast');
-                toast.style.display = 'block';
-                setTimeout(() => toast.style.display = 'none', 2000);
-              });
-            }
-          });
-        });
-
-      }, 500); // wait for script loads
-    }
-  </script>
+  <script src="js/admin.js"></script>
 </body>
 </html>
