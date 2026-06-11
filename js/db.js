@@ -199,12 +199,13 @@ const ALL_TEAMS = Object.values(TEAM_MAP).sort(function(a, b) {
 
 // 7. CONFIGURAÇÃO FIREBASE
 const firebaseConfig = {
-  // apiKey: "API_KEY",
-  // authDomain: "PROJECT_ID.firebaseapp.com",
-  // projectId: "PROJECT_ID",
-  // storageBucket: "PROJECT_ID.appspot.com",
-  // messagingSenderId: "SENDER_ID",
-  // appId: "APP_ID"
+  apiKey: "AIzaSyBapdLKIiqP04vEp_z2b6_OS9CqpJyqKKo",
+  authDomain: "bolaocopa26-f4d17.firebaseapp.com",
+  projectId: "bolaocopa26-f4d17",
+  storageBucket: "bolaocopa26-f4d17.firebasestorage.app",
+  messagingSenderId: "665725539665",
+  appId: "1:665725539665:web:58e64480638a187a2def70",
+  measurementId: "G-98ZYG6P3M1"
 };
 
 let db = null;
