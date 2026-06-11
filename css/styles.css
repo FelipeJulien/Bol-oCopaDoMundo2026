@@ -623,6 +623,44 @@ h1, h2, h3, h4, .condensed {
 }
 
 /* =============================================
+   BET RESULT BADGES (Score System)
+   ============================================= */
+.bet-result-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+.badge-exact {
+  background-color: var(--state-done);
+  color: white;
+}
+.badge-winner {
+  background-color: #3b82f6;
+  color: white;
+}
+.badge-wrong {
+  background-color: var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+/* Disabled input state */
+.score-input:disabled {
+  background-color: #111;
+  color: #888;
+  border-color: #222;
+  cursor: not-allowed;
+}
+
+/* =============================================
    SIDEBAR — RANKING Redesenhado
    ============================================= */
 .sidebar-title {
@@ -698,6 +736,16 @@ h1, h2, h3, h4, .condensed {
   font-weight: 400;
   letter-spacing: 1px;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.rank-breakdown {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 0;
+  margin-top: -2px;
 }
 
 .btn-rules {

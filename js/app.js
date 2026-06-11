@@ -65,7 +65,10 @@ function buildMatchCardHTML(match) {
   // Format date display with full date for meta
   var dateDisplay = formatDate(match.date);
   
+  var isLocked = agora >= match.date;
+  
   return '<div class="' + cardClasses + '" data-group="' + match.group + '" data-match-id="' + match.id + '">' +
+    '<div class="bet-result-badge" id="badge-' + match.id + '" style="display: none;"></div>' +
     '<div class="match-meta">' +
       '<span class="match-group-badge">GRUPO ' + match.group + '</span>' +
       '<span class="match-time">' + dateDisplay + '</span>' +
@@ -79,9 +82,9 @@ function buildMatchCardHTML(match) {
         '<span class="team-name">' + match.home.name + '</span>' +
       '</div>' +
       '<div class="score-area">' +
-        '<input type="number" class="score-input p-home" data-match="' + match.id + '" min="0" max="20" id="p-home-' + match.id + '"' + (isFinished ? ' disabled' : '') + '>' +
+        '<input type="number" class="score-input p-home" data-match="' + match.id + '" min="0" max="20" id="p-home-' + match.id + '"' + (isLocked ? ' disabled' : '') + '>' +
         '<span class="vs-text">×</span>' +
-        '<input type="number" class="score-input p-away" data-match="' + match.id + '" min="0" max="20" id="p-away-' + match.id + '"' + (isFinished ? ' disabled' : '') + '>' +
+        '<input type="number" class="score-input p-away" data-match="' + match.id + '" min="0" max="20" id="p-away-' + match.id + '"' + (isLocked ? ' disabled' : '') + '>' +
         '<div class="save-status" id="status-' + match.id + '">✓</div>' +
       '</div>' +
       '<div class="team away">' +
@@ -252,7 +255,7 @@ function renderBonusOptions() {
   document.getElementById('bonus-decepcao').innerHTML = optionsHtml;
 }
 
-// 6. UTILITÁRIOS DE FEEDBACK
+// 6. UTILITÁRIOS DE FEEDBACK E RESULTADOS
 function showSaveFeedback(matchId) {
   // Mark card as bet-placed
   document.querySelectorAll('.match-card[data-match-id="' + matchId + '"]').forEach(function(card) {
@@ -276,6 +279,42 @@ function showBonusSaveFeedback(element) {
   element.classList.add('saved-flash');
 }
 
+function renderBetResults(picks, officialResults) {
+  if (!picks || !officialResults) return;
+  
+  Object.keys(picks).forEach(function(matchId) {
+    var p = picks[matchId];
+    var r = officialResults[matchId];
+    
+    // Tem aposta e tem resultado oficial
+    if (p && p.home !== undefined && p.away !== undefined && r && r.home !== undefined && r.away !== undefined) {
+      var badgeHtml = '';
+      var badgeClass = '';
+      
+      if (p.home === r.home && p.away === r.away) {
+        badgeHtml = '+3 Placar exato';
+        badgeClass = 'badge-exact';
+      } else if (
+        (p.home > p.away && r.home > r.away) ||
+        (p.home < p.away && r.home < r.away) ||
+        (p.home === p.away && r.home === r.away)
+      ) {
+        badgeHtml = '+1 Vencedor';
+        badgeClass = 'badge-winner';
+      } else {
+        badgeHtml = '+0 Errou';
+        badgeClass = 'badge-wrong';
+      }
+      
+      document.querySelectorAll('#badge-' + matchId).forEach(function(el) {
+        el.className = 'bet-result-badge ' + badgeClass;
+        el.innerHTML = badgeHtml;
+        el.style.display = 'block';
+      });
+    }
+  });
+}
+
 // 7. CARREGAR DADOS DO USUÁRIO
 async function loadUserData() {
   var data = await dbAPI.getUserData(currentUser);
@@ -294,6 +333,10 @@ async function loadUserData() {
   document.getElementById('bonus-artilheiro').value = data.bonus.artilheiro || '';
   document.getElementById('bonus-ataque').value = data.bonus.ataque || '';
   document.getElementById('bonus-decepcao').value = data.bonus.decepcao || '';
+  
+  // Render bet results for logged user
+  var officialResults = await dbAPI.getResults();
+  renderBetResults(data.picks, officialResults);
 }
 
 // 8. AUTO-SAVE
@@ -301,6 +344,12 @@ function setupAutoSave() {
   document.querySelector('.main-content').addEventListener('change', async function(e) {
     if (e.target.classList.contains('score-input')) {
       var matchId = e.target.getAttribute('data-match');
+      var matchData = ALL_MATCHES.find(function(m) { return m.id === matchId; });
+      if (matchData && new Date() >= matchData.date) {
+         alert("O tempo para apostar neste jogo já se esgotou!");
+         e.target.value = '';
+         return;
+      }
       var container = e.target.closest('.score-area');
       var hVal = container.querySelector('.p-home').value;
       var aVal = container.querySelector('.p-away').value;
@@ -344,7 +393,7 @@ function renderSidebarRanking(ranking) {
     html += '<div class="ranking-item' + isMeClass + '">';
     html += '<div class="rank-pos">' + (idx + 1) + 'º</div>';
     html += '<div class="rank-name">' + user.name + '</div>';
-    html += '<div class="rank-pts">' + user.pts + ' pts</div>';
+    html += '<div class="rank-pts">' + user.pts + ' pts <span class="rank-breakdown">(' + (user.exato||0) + '🎯 + ' + (user.vencedor||0) + '✓)</span></div>';
     html += '</div>';
   });
   if (!isMeInTop && currentUser) {
@@ -355,7 +404,7 @@ function renderSidebarRanking(ranking) {
       html += '<div class="ranking-item me">';
       html += '<div class="rank-pos">' + (myRankIdx + 1) + 'º</div>';
       html += '<div class="rank-name">' + me.name + '</div>';
-      html += '<div class="rank-pts">' + me.pts + ' pts</div>';
+      html += '<div class="rank-pts">' + me.pts + ' pts <span class="rank-breakdown">(' + (me.exato||0) + '🎯 + ' + (me.vencedor||0) + '✓)</span></div>';
       html += '</div>';
     }
   }
@@ -447,7 +496,11 @@ function initApp() {
   updateHeaderStatus();
   setInterval(updateHeaderStatus, 1000);
   
-  dbAPI.listenToUpdates(function(ranking) {
+  dbAPI.listenToUpdates(async function(ranking, officialResults) {
     renderSidebarRanking(ranking);
+    if (currentUser) {
+      var data = await dbAPI.getUserData(currentUser);
+      renderBetResults(data.picks, officialResults);
+    }
   });
 }
