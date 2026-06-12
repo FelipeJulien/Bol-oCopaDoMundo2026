@@ -951,16 +951,37 @@ function updateLiveTab() {
     
     html += '<div class="live-cards-container" style="display: flex; flex-direction: column; md:flex-row; gap: 16px; margin-bottom: 24px;">';
     
-    // -- Placar Atual
     html += '<div class="live-card" style="flex: 1; background: #1a1a1a; border: 1px solid var(--accent-gold); border-radius: 12px; padding: 20px; text-align: center;">';
     html += '<h4 style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">Placar Atual</h4>';
     html += '<div style="display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 1.5rem; font-weight: bold; color: white;">';
-    html += '<img src="https://flagcdn.com/w40/' + m.home.code + '.png" style="border-radius:4px;"> ';
-    html += m.home.name + ' <span style="color:#FFD700; margin:0 10px;">' + res.home + ' × ' + res.away + '</span> ' + m.away.name;
-    html += ' <img src="https://flagcdn.com/w40/' + m.away.code + '.png" style="border-radius:4px;">';
+    html += '<div style="display: flex; flex-direction: column; align-items: center; width: 40%;">';
+    html += '<img src="https://flagcdn.com/w40/' + m.home.code + '.png" style="border-radius:4px; margin-bottom: 8px;"> ';
+    html += '<span style="font-size: 1.1rem;">' + m.home.name + '</span>';
+    
+    // Parse home scorers
+    var homeScorersStr = res.home_scorers && res.home_scorers !== 'null' ? res.home_scorers.replace(/[\{\}\"“”]/g, '').split(',') : [];
+    var homeScorersHtml = homeScorersStr.length > 0 ? homeScorersStr.map(function(s) { return '<div style="color: #bbb; font-size: 0.75rem; font-weight: normal; margin-top: 2px;">⚽ ' + s.trim() + '</div>'; }).join('') : '';
+    html += homeScorersHtml;
+    
     html += '</div>';
+    
+    html += '<div style="width: 20%; display: flex; flex-direction: column; align-items: center;">';
+    html += '<span style="color:#FFD700; font-size: 1.8rem; letter-spacing: 2px;">' + res.home + ' × ' + res.away + '</span>';
     html += '<div style="color: var(--state-live); font-weight: 600; margin-top: 12px; font-size: 0.9rem;">⏱ ' + minDisplay + '</div>';
     html += '</div>';
+
+    html += '<div style="display: flex; flex-direction: column; align-items: center; width: 40%;">';
+    html += '<img src="https://flagcdn.com/w40/' + m.away.code + '.png" style="border-radius:4px; margin-bottom: 8px;">';
+    html += '<span style="font-size: 1.1rem;">' + m.away.name + '</span>';
+    
+    // Parse away scorers
+    var awayScorersStr = res.away_scorers && res.away_scorers !== 'null' ? res.away_scorers.replace(/[\{\}\"“”]/g, '').split(',') : [];
+    var awayScorersHtml = awayScorersStr.length > 0 ? awayScorersStr.map(function(s) { return '<div style="color: #bbb; font-size: 0.75rem; font-weight: normal; margin-top: 2px;">⚽ ' + s.trim() + '</div>'; }).join('') : '';
+    html += awayScorersHtml;
+    
+    html += '</div>';
+    html += '</div>'; // End live-card content
+    html += '</div>'; // End live-card
     
     // -- Seu Palpite
     var pickCardBorder = 'var(--border-subtle)';
