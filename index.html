@@ -31,8 +31,24 @@
         BOLÃO 2026
       </div>
       <p class="modal-desc">Identifique-se com seu Nome de Guerra para entrar no bolão.</p>
-      <input type="text" id="auth-name-input" class="modal-input" placeholder="Seu nome..." maxlength="30" autocomplete="off">
+      <input type="text" id="auth-name-input" class="modal-input" placeholder="Seu nome..." maxlength="8" autocomplete="off">
       <button id="btn-login" class="btn-primary">Entrar no Dashboard</button>
+    </div>
+  </div>
+
+  <!-- MODAL DE PERFIL (FEATURE 3) -->
+  <div id="profile-modal" class="modal-overlay hidden">
+    <div class="modal-content profile-content">
+      <button class="btn-close-modal" id="btn-close-profile">×</button>
+      <div class="profile-header" id="profile-header">
+        <!-- Renderizado via JS -->
+      </div>
+      <div class="profile-stats" id="profile-stats">
+        <!-- Renderizado via JS -->
+      </div>
+      <div class="profile-picks-list" id="profile-picks-list">
+        <!-- Renderizado via JS -->
+      </div>
     </div>
   </div>
 
@@ -43,15 +59,11 @@
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-logo">
-          <!-- Bola de futebol estilizada SVG -->
-          <svg class="logo-icon" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="14" cy="14" r="12.5" stroke="#F5C518" stroke-width="2"/>
-            <polygon points="14,5 17,9 15,13 13,13 11,9" fill="#F5C518" opacity="0.7"/>
-            <polygon points="22,12 20,16 17,15 17,12 19,9" fill="#F5C518" opacity="0.5"/>
-            <polygon points="6,12 8,9 11,12 11,15 8,16" fill="#F5C518" opacity="0.5"/>
-            <polygon points="9,20 11,17 14,18 17,17 19,20 16,23 12,23" fill="#F5C518" opacity="0.4"/>
-          </svg>
-          BOLÃO 2026
+          <img src="assets/logo.png" alt="2026 Logo" class="brand-logo">
+          <span class="brand-text">
+            <span class="brand-full">BOLÃO DA COPA DO MUNDO 2026</span>
+            <span class="brand-short">BOLÃO CDM 2026</span>
+          </span>
         </div>
       </div>
       <div class="sidebar-content">
@@ -67,6 +79,7 @@
         <button class="btn-rules" onclick="alert('Regras:\n- Placar exato: 3 pts\n- Vencedor/Empate: 1 pt\n- Palpites Bônus: 5 pts cada')">Ler Regras</button>
         <a href="admin.html" style="display:block; text-align:center; margin-top:12px; font-size:10px; color:var(--text-muted); text-decoration:none;">Painel Admin</a>
       </div>
+      <button class="sidebar-toggle" id="btn-sidebar-toggle">‹</button>
     </aside>
 
     <!-- MAIN WRAPPER -->
@@ -84,6 +97,10 @@
         </div>
         <div class="header-right">
           <div class="user-info">
+            <div class="user-avatar-btn" id="btn-profile" title="Mudar Bandeira" style="cursor:pointer; display:flex; align-items:center; justify-content:center; width:36px; height:36px; background:#333; border-radius:50%; border:2px solid var(--border-subtle); overflow:hidden;">
+              <span id="header-flag-placeholder" style="font-weight:bold; color:#888;">?</span>
+              <img id="header-flag-img" style="display:none; width:100%; height:100%; object-fit:cover;">
+            </div>
             <div>
               <div class="user-role">Você é:</div>
               <div class="user-name" id="display-user-name">Carregando...</div>
@@ -100,6 +117,7 @@
         <button class="tab-btn" data-target="tab-grupos">Grupos</button>
         <button class="tab-btn" data-target="tab-matamata">Mata-Mata</button>
         <button class="tab-btn" data-target="tab-bonus">Bônus</button>
+        <button class="tab-btn" data-target="tab-comparativo">Comparativo</button>
       </nav>
 
       <!-- CONTENT AREA -->
@@ -141,58 +159,190 @@
           </div>
         </section>
 
+        <!-- ABA: COMPARATIVO -->
+        <section id="tab-comparativo" class="tab-pane">
+          <h2 class="section-title">Comparativo</h2>
+          <p class="section-desc">Visualize os palpites de todos os usuários lado a lado nos jogos concluídos.</p>
+          <div id="comparativo-container">
+            <!-- Renderizado via JS -->
+          </div>
+        </section>
+
         <!-- ABA: BÔNUS -->
         <section id="tab-bonus" class="tab-pane">
           <h2 class="section-title">Palpites Especiais (Bônus)</h2>
-          <p class="section-desc" style="color:var(--accent-gold);">Atenção: os palpites bônus valem 5 pontos cada e serão travados no início do primeiro jogo da Copa.</p>
+          <p class="section-desc" style="color:var(--accent-gold);">Atenção: os palpites bônus valem 5 pontos cada e podem ser editados até o fim da 1ª rodada da fase de grupos (todos os jogos).</p>
+          <p id="bonus-progress-indicator" style="font-size: 14px; color: #888; margin-top: -8px; margin-bottom: 24px;">Rodada 1 em andamento: 0 de 24 jogos concluídos</p>
+          <div class="bonus-progress-wrapper" id="bonus-progress-wrapper">
+            <div class="bonus-progress-header">
+              <span class="bonus-progress-text" id="bonus-progress-text">0 de 8 respondidas</span>
+              <span class="bonus-progress-percent" id="bonus-progress-percent">0%</span>
+            </div>
+            <div class="bonus-progress-track">
+              <div class="bonus-progress-fill" id="bonus-progress-fill" style="width: 0%"></div>
+            </div>
+          </div>
           
-          <div class="bonus-grid">
-            <!-- Campeão -->
-            <div class="bonus-card">
-              <h3 class="condensed">🏆 Campeão do Mundo</h3>
-              <p>Qual seleção levantará a taça?</p>
-              <div class="custom-select-wrapper">
-                <select class="custom-select bonus-input" id="bonus-campeao" data-bonus="campeao">
-                  <option value="">Selecione...</option>
-                  <!-- Opções via JS -->
-                </select>
+          <div class="bonus-grid" id="bonus-grid">
+            <!-- 1. Campeão -->
+            <div class="bonus-card" id="bonus-card-campeao">
+              <div class="bc-header">
+                <span class="bc-icon">🏆</span>
+                <h3 class="condensed">Campeão da Copa</h3>
               </div>
-            </div>
-            
-            <!-- Artilheiro -->
-            <div class="bonus-card">
-              <h3 class="condensed">⚽ Artilheiro da Copa</h3>
-              <p>Digite o nome do jogador (Ex: Mbappé, Vini Jr).</p>
-              <input type="text" class="custom-input bonus-input" id="bonus-artilheiro" data-bonus="artilheiro" placeholder="Nome do jogador..." maxlength="40">
+              <p>Qual seleção vai levantar a taça?</p>
+              <div class="bc-input-area">
+                <div class="custom-select-wrapper" id="custom-select-campeao">
+                  <div class="custom-select-trigger" id="trigger-campeao">
+                    <div class="custom-select-value" id="value-campeao">Selecionar seleção...</div>
+                    <span class="custom-select-arrow">▼</span>
+                  </div>
+                  <div class="custom-select-dropdown hidden" id="dropdown-campeao">
+                    <input type="text" class="custom-select-search" id="search-campeao" placeholder="Buscar seleção...">
+                    <div class="custom-select-options" id="options-campeao"></div>
+                  </div>
+                  <input type="hidden" id="input-bonus-campeao" value="">
+                </div>
+                <button class="btn-bonus-confirm" data-bonus="campeao">Confirmar</button>
+              </div>
+              <div class="bc-status-badge" id="badge-bonus-campeao"></div>
             </div>
 
-            <!-- Melhor Ataque -->
-            <div class="bonus-card">
-              <h3 class="condensed">🚀 Melhor Ataque</h3>
-              <p>Qual seleção fará mais gols no torneio?</p>
-              <div class="custom-select-wrapper">
-                <select class="custom-select bonus-input" id="bonus-ataque" data-bonus="ataque">
-                  <option value="">Selecione...</option>
-                  <!-- Opções via JS -->
-                </select>
+            <!-- 2. Artilheiro -->
+            <div class="bonus-card" id="bonus-card-artilheiro">
+              <div class="bc-header">
+                <span class="bc-icon">⚽</span>
+                <h3 class="condensed">Artilheiro da Copa</h3>
               </div>
+              <p>Maior goleador do torneio.</p>
+              <div class="bc-input-area">
+                <input type="text" class="custom-input" id="input-bonus-artilheiro" placeholder="Ex: Mbappé, Vini Jr..." maxlength="40">
+                <button class="btn-bonus-confirm" data-bonus="artilheiro">Confirmar</button>
+              </div>
+              <div class="bc-status-badge" id="badge-bonus-artilheiro"></div>
             </div>
 
-            <!-- Decepção -->
-            <div class="bonus-card">
-              <h3 class="condensed">😬 Decepção da Copa</h3>
-              <p>Qual favorita vai cair cedo e frustrar a todos?</p>
-              <div class="custom-select-wrapper">
-                <select class="custom-select bonus-input" id="bonus-decepcao" data-bonus="decepcao">
-                  <option value="">Selecione...</option>
-                  <!-- Opções via JS -->
-                </select>
+            <!-- 3. Craque -->
+            <div class="bonus-card" id="bonus-card-craque">
+              <div class="bc-header">
+                <span class="bc-icon">⭐</span>
+                <h3 class="condensed">Craque da Copa</h3>
               </div>
+              <p>Eleito o melhor jogador.</p>
+              <div class="bc-input-area">
+                <input type="text" class="custom-input" id="input-bonus-craque" placeholder="Nome do jogador..." maxlength="40">
+                <button class="btn-bonus-confirm" data-bonus="craque">Confirmar</button>
+              </div>
+              <div class="bc-status-badge" id="badge-bonus-craque"></div>
             </div>
+
+            <!-- 4. Melhor Goleiro -->
+            <div class="bonus-card" id="bonus-card-goleiro">
+              <div class="bc-header">
+                <span class="bc-icon">🧤</span>
+                <h3 class="condensed">Melhor Goleiro</h3>
+              </div>
+              <p>Eleito o melhor goleiro.</p>
+              <div class="bc-input-area">
+                <input type="text" class="custom-input" id="input-bonus-goleiro" placeholder="Nome do goleiro..." maxlength="40">
+                <button class="btn-bonus-confirm" data-bonus="goleiro">Confirmar</button>
+              </div>
+              <div class="bc-status-badge" id="badge-bonus-goleiro"></div>
+            </div>
+
+            <!-- 5. Melhor Defensor -->
+            <div class="bonus-card" id="bonus-card-defensor">
+              <div class="bc-header">
+                <span class="bc-icon">🛡️</span>
+                <h3 class="condensed">Melhor Defensor</h3>
+              </div>
+              <p>Eleito o melhor defensor.</p>
+              <div class="bc-input-area">
+                <input type="text" class="custom-input" id="input-bonus-defensor" placeholder="Nome do defensor..." maxlength="40">
+                <button class="btn-bonus-confirm" data-bonus="defensor">Confirmar</button>
+              </div>
+              <div class="bc-status-badge" id="badge-bonus-defensor"></div>
+            </div>
+
+            <!-- 6. Revelação -->
+            <div class="bonus-card" id="bonus-card-revelacao">
+              <div class="bc-header">
+                <span class="bc-icon">⚡</span>
+                <h3 class="condensed">Jogador Revelação</h3>
+              </div>
+              <p>Jovem revelação do torneio.</p>
+              <div class="bc-input-area">
+                <input type="text" class="custom-input" id="input-bonus-revelacao" placeholder="Nome da revelação..." maxlength="40">
+                <button class="btn-bonus-confirm" data-bonus="revelacao">Confirmar</button>
+              </div>
+              <div class="bc-status-badge" id="badge-bonus-revelacao"></div>
+            </div>
+
+            <!-- 7. Decepção -->
+            <div class="bonus-card" id="bonus-card-decepcao">
+              <div class="bc-header">
+                <span class="bc-icon">📉</span>
+                <h3 class="condensed">Decepção da Copa</h3>
+              </div>
+              <p>Qual seleção vai ter a pior campanha?</p>
+              <div class="bc-input-area">
+                <div class="custom-select-wrapper" id="custom-select-decepcao">
+                  <div class="custom-select-trigger" id="trigger-decepcao">
+                    <div class="custom-select-value" id="value-decepcao">Selecionar seleção...</div>
+                    <span class="custom-select-arrow">▼</span>
+                  </div>
+                  <div class="custom-select-dropdown hidden" id="dropdown-decepcao">
+                    <input type="text" class="custom-select-search" id="search-decepcao" placeholder="Buscar seleção...">
+                    <div class="custom-select-options" id="options-decepcao"></div>
+                  </div>
+                  <input type="hidden" id="input-bonus-decepcao" value="">
+                </div>
+                <button class="btn-bonus-confirm" data-bonus="decepcao">Confirmar</button>
+              </div>
+              <div class="bc-status-badge" id="badge-bonus-decepcao"></div>
+            </div>
+
+            <!-- 8. Neymar vai marcar? -->
+            <div class="bonus-card" id="bonus-card-neymar_gol">
+              <div class="bc-header">
+                <span class="bc-icon">⚽</span>
+                <h3 class="condensed">Neymar vai marcar?</h3>
+              </div>
+              <p>Pelo menos uma vez no torneio?</p>
+              <div class="bc-input-area">
+                <div class="toggle-segmented" id="toggle-neymar_gol">
+                  <button class="toggle-option" data-val="sim">Sim</button>
+                  <button class="toggle-option" data-val="não">Não</button>
+                </div>
+                <input type="hidden" id="input-bonus-neymar_gol" value="">
+                <button class="btn-bonus-confirm" data-bonus="neymar_gol">Confirmar</button>
+              </div>
+              <div class="bc-status-badge" id="badge-bonus-neymar_gol"></div>
+            </div>
+
           </div>
         </section>
 
       </main>
+    </div>
+  </div>
+
+  <!-- AVATAR MODAL -->
+  <div id="avatar-modal" class="modal-overlay hidden">
+    <div class="modal-content" style="max-width: 500px;">
+      <h2 class="condensed" style="color: var(--accent-gold); font-size: 2rem; margin-top: 0; margin-bottom: 8px;">Escolha sua Bandeira</h2>
+      <p style="color: var(--text-secondary); margin-bottom: 20px;">Esta bandeira representará você no Ranking Geral.</p>
+      
+      <input type="text" id="flag-search-input" class="modal-input" placeholder="Pesquisar seleção (ex: Brasil)..." autocomplete="off" style="margin-bottom: 16px;">
+      
+      <div id="flag-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 10px; max-height: 300px; overflow-y: auto; padding-right: 8px; margin-bottom: 24px;">
+        <!-- Preenchido via JS -->
+      </div>
+      
+      <div style="display: flex; gap: 12px; justify-content: flex-end;">
+        <button id="btn-avatar-cancel" class="btn-bonus-confirm" style="background: transparent; color: white;">Cancelar</button>
+        <button id="btn-avatar-save" class="btn-primary" style="padding: 10px 24px;">Salvar Foto</button>
+      </div>
     </div>
   </div>
 

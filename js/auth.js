@@ -36,6 +36,10 @@ function checkAuth() {
 document.getElementById('btn-login').addEventListener('click', () => {
   const nameInput = document.getElementById('auth-name-input').value.trim();
   if (nameInput) {
+    if (nameInput.length > 8) {
+      alert("Máximo 8 caracteres");
+      return;
+    }
     const uid = slugify(nameInput);
     localStorage.setItem('auth_uid', uid);
     localStorage.setItem('auth_name', nameInput);

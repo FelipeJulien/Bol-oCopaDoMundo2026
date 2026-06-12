@@ -71,6 +71,7 @@ async function initAdmin() {
     renderJogos();
     renderRanking();
     renderUsuarios();
+    renderBonusAdmin();
     populateBetFilters();
   });
 }
@@ -93,6 +94,36 @@ async function logAction(action, newValue, oldValue) {
     logs.push(logEntry);
     localStorage.setItem('admin_logs', JSON.stringify(logs));
   }
+}
+
+// 5. TOAST NOTIFICATIONS
+function showAdminToast(msg, isError = false) {
+  let toast = document.getElementById('admin-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'admin-toast';
+    toast.style.position = 'fixed';
+    toast.style.bottom = '20px';
+    toast.style.right = '20px';
+    toast.style.padding = '12px 24px';
+    toast.style.borderRadius = '4px';
+    toast.style.color = 'white';
+    toast.style.fontWeight = 'bold';
+    toast.style.zIndex = '99999';
+    toast.style.transition = 'opacity 0.3s ease';
+    toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.5)';
+    document.body.appendChild(toast);
+  }
+  
+  toast.style.backgroundColor = isError ? 'var(--admin-primary)' : 'var(--admin-success)';
+  toast.innerHTML = msg;
+  toast.style.opacity = '1';
+  toast.style.display = 'block';
+  
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => { toast.style.display = 'none'; }, 300);
+  }, 3000);
 }
 
 // =============================================
@@ -158,7 +189,7 @@ window.salvarResultado = async function(matchId) {
   const aVal = document.getElementById(`res-away-${matchId}`).value;
   
   if (hVal === '' || aVal === '') {
-    alert("Preencha ambos os placares!");
+    showAdminToast("Erro: Preencha os placares das duas equipes!", true);
     return;
   }
   
@@ -167,7 +198,7 @@ window.salvarResultado = async function(matchId) {
   
   await dbAPI.saveResult(resultsObj);
   logAction('Salvar Resultado', `Jogo ${matchId}: ${hVal}x${aVal}`, 'Sem resultado oficial');
-  alert("Salvo com sucesso! Ranking será recalculado em tempo real.");
+  showAdminToast("Placar oficial salvo! Ranking recalculado.");
 };
 
 window.cancelarJogo = async function(matchId) {
@@ -178,7 +209,56 @@ window.cancelarJogo = async function(matchId) {
   
   await dbAPI.saveResult(resultsObj);
   logAction('Cancelar Jogo', `Jogo ${matchId} marcado como cancelado`, '');
-  alert("Jogo cancelado.");
+  showAdminToast("Jogo cancelado com sucesso.");
+};
+
+// =============================================
+// SEÇÃO: BÔNUS
+// =============================================
+function renderBonusAdmin() {
+  const container = document.getElementById('admin-bonus-list');
+  const categorias = [
+    { key: 'campeao', label: 'Campeão da Copa' },
+    { key: 'artilheiro', label: 'Artilheiro da Copa' },
+    { key: 'craque', label: 'Craque da Copa' },
+    { key: 'goleiro', label: 'Melhor Goleiro' },
+    { key: 'defensor', label: 'Melhor Defensor' },
+    { key: 'revelacao', label: 'Jogador Revelação' },
+    { key: 'decepcao', label: 'Decepção da Copa' },
+    { key: 'neymar_gol', label: 'Neymar vai marcar?' }
+  ];
+  
+  let html = '';
+  categorias.forEach(cat => {
+    const val = allResultsCache['bonus_' + cat.key] || '';
+    html += `
+      <div class="admin-game-card" style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <h3 style="margin:0 0 8px 0;">${cat.label}</h3>
+          <input type="text" id="res-bonus-${cat.key}" class="modal-input" placeholder="Resultado Oficial" value="${val}" style="width: 300px;">
+        </div>
+        <button class="btn-admin primary" onclick="salvarResultadoBonus('${cat.key}')">Salvar Resultado</button>
+      </div>
+    `;
+  });
+  
+  container.innerHTML = html;
+}
+
+window.salvarResultadoBonus = async function(key) {
+  const val = document.getElementById(`res-bonus-${key}`).value.trim();
+  
+  if (val === '') {
+    showAdminToast("Erro: Preencha o resultado bônus!", true);
+    return;
+  }
+  
+  const resultsObj = {};
+  resultsObj['bonus_' + key] = val;
+  
+  await dbAPI.saveResult(resultsObj);
+  logAction('Salvar Bônus', `Bônus ${key}: ${val}`, '');
+  showAdminToast("Resultado Bônus Oficial salvo! Pontos recalculados automaticamente.");
 };
 
 // =============================================
@@ -234,7 +314,7 @@ function renderUsuarios() {
 window.zerarUsuario = async function(userId) {
   const code = prompt("Digite CONFIRMAR para zerar toda a pontuação e deletar as apostas deste usuário:");
   if (code !== "CONFIRMAR") {
-    alert("Operação abortada.");
+    showAdminToast("Operação de exclusão abortada.", true);
     return;
   }
   
@@ -253,14 +333,14 @@ window.zerarUsuario = async function(userId) {
   } else {
     localStorage.removeItem('user_' + userId);
   }
-  alert("Pontuação zerada com sucesso! Atualizando...");
+  showAdminToast("Pontuação do usuário zerada com sucesso!");
 };
 
 document.getElementById('btn-recalc-all').addEventListener('click', () => {
   // Since db.js listenToUpdates already fetches ALL users and ALL results and calculates them, 
   // simply resaving a dummy meta triggers the recalculation for everyone.
   logAction("Recalcular Geral", "Forçou o recálculo do ranking", "");
-  alert("O ranking já é calculado dinamicamente na nuvem! Tudo está atualizado com base nos resultados oficiais salvos.");
+  showAdminToast("O ranking já é calculado dinamicamente na nuvem! Está 100% atualizado.");
 });
 
 document.getElementById('btn-export-csv').addEventListener('click', () => {
@@ -429,7 +509,7 @@ document.getElementById('btn-save-edit').addEventListener('click', async () => {
   const a = parseInt(editBetAway.value);
   
   if (isNaN(h) || isNaN(a)) {
-    alert("Valores inválidos para aposta.");
+    showAdminToast("Erro: Valores inválidos para a aposta.", true);
     return;
   }
   
@@ -438,19 +518,34 @@ document.getElementById('btn-save-edit').addEventListener('click', async () => {
   
   modalEditBet.classList.add('hidden');
   carregarApostasTabela();
-  alert("Aposta atualizada! Os pontos serão recalculados com base nos resultados oficiais automaticamente.");
+  showAdminToast("Aposta do usuário salva com sucesso!");
 });
 
 document.getElementById('btn-add-bet').addEventListener('click', () => {
-  const userId = prompt("Digite o ID exato do Usuário (Dica: veja na aba Usuários):");
-  if (!userId) return;
-  const user = allUsersCache.find(u => u.id === userId);
-  const userName = user ? user.name : 'Anônimo Manual';
-  
   const matchId = filterGame.value;
   if (!matchId) {
-    alert("Selecione um jogo no filtro primeiro.");
+    showAdminToast("Erro: Selecione um jogo no filtro primeiro.", true);
     return;
+  }
+
+  const userNameInput = filterUser.value.trim();
+  let userName = userNameInput;
+  let userId = '';
+
+  if (!userName) {
+    userName = prompt("Digite o nome do Usuário para esta aposta manual:");
+    if (!userName) return;
+  }
+
+  // Try to find if user already exists by name
+  const existingUser = allUsersCache.find(u => u.name.toLowerCase() === userName.toLowerCase());
+  
+  if (existingUser) {
+    userId = existingUser.id;
+    userName = existingUser.name;
+  } else {
+    // Generates a new ID for the manual user
+    userId = 'manual_' + Date.now();
   }
   
   abrirModalEdicao(userId, userName, matchId, 0, 0);

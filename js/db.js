@@ -249,6 +249,18 @@ const dbAPI = {
     }
   },
 
+  saveUserAvatar: async (userId, countryCode) => {
+    let localData = JSON.parse(localStorage.getItem('user_' + userId) || '{"picks":{}, "bonus":{}}');
+    localData.avatar = countryCode;
+    localStorage.setItem('user_' + userId, JSON.stringify(localData));
+    if (db) {
+      await db.collection('users').doc(userId).set({
+        avatar_bandeira: countryCode,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, {merge: true});
+    }
+  },
+
   getUserData: async (userId) => {
     const localData = JSON.parse(localStorage.getItem('user_' + userId) || '{"picks":{}, "bonus":{}}');
     if (!db) return localData;
@@ -262,9 +274,14 @@ const dbAPI = {
         campeao: userData.bonus_campeao || '',
         artilheiro: userData.bonus_artilheiro || '',
         ataque: userData.bonus_ataque || '',
-        decepcao: userData.bonus_decepcao || ''
+        decepcao: userData.bonus_decepcao || '',
+        craque: userData.bonus_craque || '',
+        goleiro: userData.bonus_goleiro || '',
+        defensor: userData.bonus_defensor || '',
+        revelacao: userData.bonus_revelacao || '',
+        neymar_gol: userData.bonus_neymar_gol || ''
       };
-      return { picks: picks, bonus: bonus };
+      return { name: userData.name || '', picks: picks, bonus: bonus, avatar: userData.avatar_bandeira || '' };
     } catch(e) {
       console.error(e);
       return localData;
@@ -316,7 +333,24 @@ const dbAPI = {
               }
             }
           });
-          ranking.push({ id: userDoc.id, name: userData.name || 'Anônimo', pts: pts, exato: exato, vencedor: vencedor });
+          // Calcular pontos de bonus
+          if (results.bonus_artilheiro && userData.bonus_artilheiro === results.bonus_artilheiro) pts += 5;
+          if (results.bonus_ataque && userData.bonus_ataque === results.bonus_ataque) pts += 5;
+          if (results.bonus_campeao && userData.bonus_campeao === results.bonus_campeao) pts += 5;
+          if (results.bonus_decepcao && userData.bonus_decepcao === results.bonus_decepcao) pts += 5;
+          if (results.bonus_craque && userData.bonus_craque === results.bonus_craque) pts += 5;
+          if (results.bonus_goleiro && userData.bonus_goleiro === results.bonus_goleiro) pts += 5;
+          if (results.bonus_defensor && userData.bonus_defensor === results.bonus_defensor) pts += 5;
+          if (results.bonus_revelacao && userData.bonus_revelacao === results.bonus_revelacao) pts += 5;
+          if (results.bonus_neymar_gol && userData.bonus_neymar_gol === results.bonus_neymar_gol) pts += 5;
+
+          // Feature 3 & 4: Incluir palpites para cruzar as informações na interface
+          let picksData = {};
+          picksSnap.forEach(function(pDoc) {
+            picksData[pDoc.id] = pDoc.data();
+          });
+
+          ranking.push({ id: userDoc.id, name: userData.name || 'Anônimo', pts: pts, exato: exato, vencedor: vencedor, avatar: userData.avatar_bandeira || '', picks: picksData, bonus_answers: { artilheiro: userData.bonus_artilheiro, ataque: userData.bonus_ataque, campeao: userData.bonus_campeao, decepcao: userData.bonus_decepcao, craque: userData.bonus_craque, goleiro: userData.bonus_goleiro, defensor: userData.bonus_defensor, revelacao: userData.bonus_revelacao, neymar_gol: userData.bonus_neymar_gol } });
         }
         ranking.sort(function(a, b) { return b.pts - a.pts || b.exato - a.exato; });
         callback(ranking, results);
