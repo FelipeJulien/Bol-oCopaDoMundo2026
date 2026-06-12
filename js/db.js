@@ -395,47 +395,47 @@ function apiNameToLocalKey(apiName) {
 
 // Busca e sincroniza resultados da API
 async function fetchAndSyncResults() {
+  // Proxy próprio no Vercel (mesmo domínio = sem CORS) — prioridade máxima
+  const LOCAL_PROXY = '/api/games';
   const API_URL = 'https://worldcup26.ir/get/games';
   
-  // Lista de proxies CORS para fallback em cascata
+  // Fallbacks externos caso o proxy local falhe
   const CORS_PROXIES = [
-    'https://api.allorigins.win/raw?url=',
-    'https://corsproxy.io/?url=',
-    'https://api.codetabs.com/v1/proxy?quest='
+    'https://api.allorigins.win/raw?url=' + encodeURIComponent(API_URL),
+    'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(API_URL)
   ];
 
   let apiData = null;
 
-  // Tentar chamada direta primeiro
+  // 1. Tentar proxy local (Vercel serverless function)
   try {
-    const resp = await fetch(API_URL, { signal: AbortSignal.timeout(8000) });
+    const resp = await fetch(LOCAL_PROXY, { signal: AbortSignal.timeout(10000) });
     if (resp.ok) {
       apiData = await resp.json();
-      console.log('Auto-sync: API direta respondeu com sucesso.');
+      console.log('Auto-sync: dados recebidos via proxy local (/api/games)');
     }
   } catch (e) {
-    console.log('Auto-sync: API direta bloqueada (CORS), tentando proxies...');
+    console.log('Auto-sync: proxy local falhou, tentando fallbacks...', e.message);
   }
 
-  // Fallback: tentar cada proxy CORS em sequência
+  // 2. Fallback: proxies CORS externos
   if (!apiData) {
     for (let i = 0; i < CORS_PROXIES.length; i++) {
       try {
-        const proxyUrl = CORS_PROXIES[i] + encodeURIComponent(API_URL);
-        const resp = await fetch(proxyUrl, { signal: AbortSignal.timeout(10000) });
+        const resp = await fetch(CORS_PROXIES[i], { signal: AbortSignal.timeout(10000) });
         if (resp.ok) {
           apiData = await resp.json();
-          console.log('Auto-sync: sucesso via proxy #' + (i + 1));
+          console.log('Auto-sync: sucesso via proxy externo #' + (i + 1));
           break;
         }
       } catch (e) {
-        console.log('Auto-sync: proxy #' + (i + 1) + ' falhou:', e.message);
+        console.log('Auto-sync: proxy externo #' + (i + 1) + ' falhou:', e.message);
       }
     }
   }
 
   if (!apiData) {
-    console.error('Auto-sync: todos os proxies falharam. Tentará novamente em 2 min.');
+    console.error('Auto-sync: nenhuma fonte respondeu. Tentará novamente em 2 min.');
     return { updated: 0, total: 0, error: true };
   }
 
