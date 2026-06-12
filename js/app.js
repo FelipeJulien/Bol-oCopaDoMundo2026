@@ -913,11 +913,20 @@ function updateHeaderStatus() {
 // 11.5 LIVE TAB LÓGICA (Transmissão)
 // =============================================
 
-function extractYouTubeID(url) {
+function parseStreamUrl(url) {
   if (!url) return null;
+  // Twitch
+  if (url.includes('twitch.tv/')) {
+    const parts = url.split('twitch.tv/');
+    return { type: 'twitch', id: parts[1].split('?')[0].split('/')[0] };
+  }
+  // YouTube
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
   const match = url.match(regExp);
-  return (match && match[2].length === 11) ? match[2] : url; 
+  if (match && match[2].length === 11) {
+    return { type: 'youtube', id: match[2] };
+  }
+  return { type: 'youtube', id: url }; // fallback
 }
 
 function updateLiveTab() {
@@ -989,14 +998,20 @@ function updateLiveTab() {
   
   // Atualizar Iframe se a aba estiver ativa, ou pausar se não estiver
   var iframe = document.getElementById('live-youtube-iframe');
-  var yId = extractYouTubeID(globalLiveConfig.youtubeUrl);
+  var streamObj = parseStreamUrl(globalLiveConfig.youtubeUrl);
   var currentUrl = iframe.src;
   
   // Se a aba estiver ativa e tivermos um ID, carregar o vídeo
   var isTabActive = document.getElementById('tab-transmissao').classList.contains('active');
-  if (isTabActive && yId) {
-    if (!currentUrl.includes(yId)) {
-      iframe.src = 'https://www.youtube.com/embed/' + yId + '?autoplay=1';
+  if (isTabActive && streamObj) {
+    var expectedUrl = '';
+    if (streamObj.type === 'twitch') {
+      expectedUrl = 'https://player.twitch.tv/?channel=' + streamObj.id + '&parent=' + window.location.hostname + '&autoplay=true';
+    } else {
+      expectedUrl = 'https://www.youtube.com/embed/' + streamObj.id + '?autoplay=1';
+    }
+    if (currentUrl !== expectedUrl && (!currentUrl.includes(streamObj.id))) {
+      iframe.src = expectedUrl;
     }
   } else {
     // Se a aba não está ativa, limpa o iframe para não tocar áudio oculto
@@ -1236,11 +1251,7 @@ function initApp() {
     // Atualiza o player se a aba Transmissão estiver ativa
     var isTabActive = document.getElementById('tab-transmissao') && document.getElementById('tab-transmissao').classList.contains('active');
     if (isTabActive && currentLiveMatchId) {
-      var yId = extractYouTubeID(globalLiveConfig.youtubeUrl);
-      var frame = document.getElementById('live-youtube-iframe');
-      if (yId && !frame.src.includes(yId)) {
-        frame.src = 'https://www.youtube.com/embed/' + yId + '?autoplay=1';
-      }
+      if (typeof updateLiveTab === 'function') updateLiveTab();
     }
   });
 
