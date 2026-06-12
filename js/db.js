@@ -464,12 +464,13 @@ async function fetchAndSyncResults() {
     return { updated: 0, total: 0, error: true };
   }
 
-  // Filtrar apenas jogos finalizados
-  const finishedGames = apiData.games.filter(function(g) {
-    return g.finished === 'TRUE' && g.type === 'group';
+  // Filtrar jogos finalizados OU em andamento (AO VIVO)
+  const gamesToSync = apiData.games.filter(function(g) {
+    const isLive = g.finished === 'FALSE' && g.time_elapsed !== 'notstarted';
+    return (g.finished === 'TRUE' || isLive) && g.type === 'group';
   });
 
-  if (finishedGames.length === 0) {
+  if (gamesToSync.length === 0) {
     return { updated: 0, total: 0, error: false };
   }
 
@@ -478,7 +479,7 @@ async function fetchAndSyncResults() {
   const newResults = {};
   let updatedCount = 0;
 
-  finishedGames.forEach(function(apiGame) {
+  gamesToSync.forEach(function(apiGame) {
     const homeKey = apiNameToLocalKey(apiGame.home_team_name_en);
     const awayKey = apiNameToLocalKey(apiGame.away_team_name_en);
     const homeScore = parseInt(apiGame.home_score);
@@ -519,7 +520,7 @@ async function fetchAndSyncResults() {
     if (now - lastLock < 30000) {
       // Outra aba sincronizou há menos de 30s, pular
       console.log('Auto-sync: outra aba já sincronizou recentemente.');
-      return { updated: 0, total: finishedGames.length, error: false, skipped: true };
+      return { updated: 0, total: gamesToSync.length, error: false, skipped: true };
     }
 
     localStorage.setItem(lockKey, String(now));
@@ -529,11 +530,11 @@ async function fetchAndSyncResults() {
       console.log('Auto-sync: ' + updatedCount + ' resultado(s) atualizado(s) via API.');
     } catch (e) {
       console.error('Auto-sync: erro ao salvar resultados:', e);
-      return { updated: 0, total: finishedGames.length, error: true };
+      return { updated: 0, total: gamesToSync.length, error: true };
     }
   }
 
-  return { updated: updatedCount, total: finishedGames.length, error: false };
+  return { updated: updatedCount, total: gamesToSync.length, error: false };
 }
 
 // Timer global para auto-sync
