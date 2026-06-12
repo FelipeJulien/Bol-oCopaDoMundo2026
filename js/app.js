@@ -1139,7 +1139,6 @@ function populateBonusSelects() {
   });
 }
 
-let currentUserName = '';
 let globalPicks = {};
 let globalRanking = [];
 let globalOfficialResults = {};
@@ -1219,6 +1218,7 @@ function initApp() {
       // Fallback seguro: se DB não retornou nome, usa do localStorage
       var authName = localStorage.getItem('auth_name');
       currentUserName = data.name || authName || 'Anônimo';
+      globalPicks = data.picks || {};
       
       document.getElementById('display-user-name').innerText = currentUserName;
       
