@@ -398,44 +398,64 @@ async function fetchAndSyncResults() {
   // Proxy próprio no Vercel (mesmo domínio = sem CORS) — prioridade máxima
   const LOCAL_PROXY = '/api/games';
   const API_URL = 'https://worldcup26.ir/get/games';
-  
-  // Fallbacks externos caso o proxy local falhe
-  const CORS_PROXIES = [
-    'https://api.allorigins.win/raw?url=' + encodeURIComponent(API_URL),
-    'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(API_URL)
-  ];
 
   let apiData = null;
 
-  // 1. Tentar proxy local (Vercel serverless function)
+  // 1. Tentar proxy local (Vercel serverless function — só funciona no deploy)
   try {
-    const resp = await fetch(LOCAL_PROXY, { signal: AbortSignal.timeout(10000) });
+    const resp = await fetch(LOCAL_PROXY, { signal: AbortSignal.timeout(8000) });
     if (resp.ok) {
       apiData = await resp.json();
       console.log('Auto-sync: dados recebidos via proxy local (/api/games)');
     }
   } catch (e) {
-    console.log('Auto-sync: proxy local falhou, tentando fallbacks...', e.message);
+    // Esperado falhar localmente (Live Server), silencioso
   }
 
-  // 2. Fallback: proxies CORS externos
+  // 2. Tentar chamada direta (pode funcionar em alguns ambientes)
   if (!apiData) {
-    for (let i = 0; i < CORS_PROXIES.length; i++) {
-      try {
-        const resp = await fetch(CORS_PROXIES[i], { signal: AbortSignal.timeout(10000) });
-        if (resp.ok) {
-          apiData = await resp.json();
-          console.log('Auto-sync: sucesso via proxy externo #' + (i + 1));
-          break;
-        }
-      } catch (e) {
-        console.log('Auto-sync: proxy externo #' + (i + 1) + ' falhou:', e.message);
+    try {
+      const resp = await fetch(API_URL, { signal: AbortSignal.timeout(8000) });
+      if (resp.ok) {
+        apiData = await resp.json();
+        console.log('Auto-sync: dados recebidos via API direta');
       }
+    } catch (e) {
+      // CORS esperado em produção
+    }
+  }
+
+  // 3. Fallback: allorigins (endpoint /get retorna { contents: "..." })
+  if (!apiData) {
+    try {
+      const resp = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent(API_URL), { signal: AbortSignal.timeout(12000) });
+      if (resp.ok) {
+        const wrapper = await resp.json();
+        if (wrapper && wrapper.contents) {
+          apiData = JSON.parse(wrapper.contents);
+          console.log('Auto-sync: dados recebidos via allorigins');
+        }
+      }
+    } catch (e) {
+      console.log('Auto-sync: allorigins falhou:', e.message);
+    }
+  }
+
+  // 4. Fallback: codetabs
+  if (!apiData) {
+    try {
+      const resp = await fetch('https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(API_URL), { signal: AbortSignal.timeout(12000) });
+      if (resp.ok) {
+        apiData = await resp.json();
+        console.log('Auto-sync: dados recebidos via codetabs');
+      }
+    } catch (e) {
+      console.log('Auto-sync: codetabs falhou:', e.message);
     }
   }
 
   if (!apiData) {
-    console.error('Auto-sync: nenhuma fonte respondeu. Tentará novamente em 2 min.');
+    console.warn('Auto-sync: nenhuma fonte respondeu. Tentará novamente em 2 min.');
     return { updated: 0, total: 0, error: true };
   }
 
