@@ -14,6 +14,7 @@ const els = {
   sidebar: document.getElementById('sidebar'),
   bonusSelects: document.querySelectorAll('.bonus-input'),
   headerStatus: document.getElementById('header-status'),
+  rankingGeralTbody: document.getElementById('ranking-geral-tbody'),
   btnProfile: document.getElementById('btn-profile'),
   avatarModal: document.getElementById('avatar-modal'),
   flagGrid: document.getElementById('flag-grid'),
@@ -854,7 +855,9 @@ function updateHeaderStatus() {
     
     // Header clicável
     els.headerStatus.style.cursor = 'pointer';
-    els.headerStatus.onclick = openLiveModal;
+    els.headerStatus.onclick = () => {
+      document.getElementById('tab-btn-transmissao').click();
+    };
 
     els.headerStatus.innerHTML = 
       '<span class="live-dot"></span>' +
@@ -896,28 +899,24 @@ function updateHeaderStatus() {
 }
 
 // =============================================
-// 11.5 LIVE MODAL LÓGICA (Cazé TV)
+// 11.5 LIVE TAB LÓGICA (Transmissão)
 // =============================================
-const liveModal = document.getElementById('live-modal');
-const btnCloseLive = document.getElementById('btn-close-live');
-
-if (btnCloseLive) {
-  btnCloseLive.addEventListener('click', () => {
-    liveModal.classList.add('hidden');
-    // Para o vídeo parar de tocar
-    document.getElementById('live-youtube-iframe').src = '';
-  });
-}
 
 function extractYouTubeID(url) {
   if (!url) return null;
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
   const match = url.match(regExp);
-  return (match && match[2].length === 11) ? match[2] : url; // retorna o id ou a própria string se já for ID
+  return (match && match[2].length === 11) ? match[2] : url; 
 }
 
-function updateLiveModalData() {
-  if (!currentLiveMatchId || liveModal.classList.contains('hidden')) return;
+function updateLiveTab() {
+  if (!currentLiveMatchId) {
+    document.getElementById('live-tab-content').style.display = 'none';
+    return;
+  }
+  
+  // Garantir que está visível
+  document.getElementById('live-tab-content').style.display = 'block';
   
   var m = ALL_MATCHES.find(x => x.id === currentLiveMatchId);
   var res = globalOfficialResults[currentLiveMatchId] || { home: 0, away: 0, canceled: false };
@@ -928,9 +927,6 @@ function updateLiveModalData() {
   var minDisplay = minuteElapsed > 90 ? '90+' + (minuteElapsed - 90) : minuteElapsed + "'";
   
   var isFinished = !!(globalOfficialResults[currentLiveMatchId] && globalOfficialResults[currentLiveMatchId].home !== undefined);
-  // Se ainda tá rodando, mas o jogo tem resultado, então já finalizou
-  // Mas como a API pode mandar "live", a gente não sabe 100% no app local se finished é true ou não (o db.js auto-sync cuida disso se a API disser TRUE).
-  // Se tiver time_elapsed !== 'notstarted', ele atualiza o res. Se finished === 'TRUE', ele encerra de vez.
   
   // Placar Atual
   document.getElementById('live-real-score').innerHTML = 
@@ -950,11 +946,9 @@ function updateLiveModalData() {
     '<span style="opacity:0.8;">' + m.home.name + '</span> <span style="margin:0 10px;">' + myPick.home + ' × ' + myPick.away + '</span> <span style="opacity:0.8;">' + m.away.name + '</span>' +
     ' <img src="https://flagcdn.com/w40/' + m.away.code + '.png" style="border-radius:4px; opacity:0.8;">';
     
-    // Cor
     pickCard.style.borderColor = 'var(--accent-gold)';
     pickStatus.innerHTML = '<span style="color:var(--accent-gold);">Em Aberto (Jogo rolando)</span>';
     
-    // Se isFinished
     if (isFinished) {
       if (myPick.home === res.home && myPick.away === res.away) {
         pickCard.style.borderColor = 'var(--admin-success)';
@@ -971,7 +965,6 @@ function updateLiveModalData() {
         pickStatus.innerHTML = '<span style="color:#e11d48;">Errou! 0 pts</span>';
       }
     }
-    
   } else {
     userPickHtml = '<span style="color:var(--text-muted); font-size: 1rem; font-weight: normal;">Você não apostou neste jogo.</span>';
     pickCard.style.borderColor = 'var(--border-subtle)';
@@ -979,20 +972,52 @@ function updateLiveModalData() {
   }
   
   document.getElementById('live-user-pick').innerHTML = userPickHtml;
+  
+  // Atualizar Iframe se a aba estiver ativa, ou pausar se não estiver
+  var iframe = document.getElementById('live-youtube-iframe');
+  var yId = extractYouTubeID(globalLiveConfig.youtubeUrl);
+  var currentUrl = iframe.src;
+  
+  // Se a aba estiver ativa e tivermos um ID, carregar o vídeo
+  var isTabActive = document.getElementById('tab-transmissao').classList.contains('active');
+  if (isTabActive && yId) {
+    if (!currentUrl.includes(yId)) {
+      iframe.src = 'https://www.youtube.com/embed/' + yId + '?autoplay=1';
+    }
+  } else {
+    // Se a aba não está ativa, limpa o iframe para não tocar áudio oculto
+    if (currentUrl) iframe.src = '';
+  }
 }
 
-function openLiveModal() {
-  if (!currentLiveMatchId) return;
-  liveModal.classList.remove('hidden');
+// =============================================
+// 11.6 RANKING GERAL (Aba Completa)
+// =============================================
+function renderFullRanking() {
+  if (!els.rankingGeralTbody) return;
+  var html = '';
+  globalRanking.forEach(function(u, idx) {
+    var isMe = (u.id === currentUser);
+    var rowStyle = isMe ? 'background: rgba(255, 215, 0, 0.1); font-weight: bold;' : '';
+    
+    html += '<tr style="' + rowStyle + ' border-bottom: 1px solid var(--border-subtle);">';
+    html += '<td style="padding: 12px 16px; text-align: center; color: var(--accent-gold); font-size: 1.1rem; font-weight: bold;">' + (idx + 1) + 'º</td>';
+    html += '<td style="padding: 12px 16px; display: flex; align-items: center; gap: 10px;">';
+    
+    if (u.flag) {
+      html += '<img src="https://flagcdn.com/w40/' + u.flag + '.png" class="flag-img" style="width: 24px; height: 16px;">';
+    } else {
+      html += '<div class="avatar-placeholder" style="width:24px; height:24px; font-size:10px;">A</div>';
+    }
+    
+    html += '<span>' + (u.name || 'Anônimo') + (isMe ? ' (Você)' : '') + '</span></td>';
+    html += '<td style="padding: 12px 16px; text-align: center; color: var(--text-muted);">' + (u.exato||0) + '</td>';
+    html += '<td style="padding: 12px 16px; text-align: center; color: var(--text-muted);">' + (u.vencedor||0) + '</td>';
+    html += '<td style="padding: 12px 16px; text-align: right; color: var(--accent-gold); font-size: 1.1rem; font-weight: bold;">' + u.pts + ' PTS</td>';
+    html += '</tr>';
+  });
   
-  var yId = extractYouTubeID(globalLiveConfig.youtubeUrl);
-  if (yId) {
-    document.getElementById('live-youtube-iframe').src = 'https://www.youtube.com/embed/' + yId + '?autoplay=1';
-  } else {
-    document.getElementById('live-youtube-iframe').src = '';
-  }
-  
-  updateLiveModalData();
+  els.rankingGeralTbody.innerHTML = html;
 }
 
 // 12. PERFIL DE USUÁRIO (BANDEIRA)
@@ -1066,6 +1091,11 @@ els.tabs.forEach(function(tab) {
     // Atualizar classificação dos grupos quando clicar na aba
     if (tab.getAttribute('data-target') === 'tab-grupos') {
       renderGroups();
+    }
+    
+    // Atualizar player ao vivo ao trocar de abas
+    if (typeof updateLiveTab === 'function') {
+      updateLiveTab();
     }
   });
 });
@@ -1189,9 +1219,9 @@ function initApp() {
 
   dbAPI.listenToLiveConfig((config) => {
     globalLiveConfig = config || {};
-    // Atualiza navbar se mudar o config (ex: admin mudou url)
-    if (!liveModal.classList.contains('hidden') && currentLiveMatchId) {
-      // Se tiver aberto e o video mudou
+    // Atualiza o player se a aba Transmissão estiver ativa
+    var isTabActive = document.getElementById('tab-transmissao') && document.getElementById('tab-transmissao').classList.contains('active');
+    if (isTabActive && currentLiveMatchId) {
       var yId = extractYouTubeID(globalLiveConfig.youtubeUrl);
       var frame = document.getElementById('live-youtube-iframe');
       if (yId && !frame.src.includes(yId)) {
@@ -1206,11 +1236,14 @@ function initApp() {
     // Sync official results to localStorage for other reads
     localStorage.setItem('official_results', JSON.stringify(officialResults));
     renderSidebarRanking(ranking);
+    renderFullRanking();
     renderComparativo(ranking, officialResults);
     renderGroups();
     
     // Atualiza modal se estiver aberto
-    updateLiveModalData();
+    if (typeof updateLiveTab === 'function') {
+      updateLiveTab();
+    }
     
     if (currentUser) {
       var data = await dbAPI.getUserData(currentUser);
