@@ -519,12 +519,12 @@ async function fetchAndSyncResults() {
 
     // Verificar se o resultado já existe e é igual
     const existing = currentResults[localMatch.id];
-    if (existing && existing.home === homeScore && existing.away === awayScore && !existing.canceled) {
+    if (existing && existing.home === homeScore && existing.away === awayScore && existing.status === apiGame.time_elapsed && !existing.canceled) {
       return; // Já está atualizado
     }
 
     // Novo resultado ou resultado diferente
-    newResults[localMatch.id] = { home: homeScore, away: awayScore, canceled: false };
+    newResults[localMatch.id] = { home: homeScore, away: awayScore, canceled: false, status: apiGame.time_elapsed };
     updatedCount++;
   });
 

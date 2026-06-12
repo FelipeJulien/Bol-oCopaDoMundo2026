@@ -50,13 +50,18 @@ function getDateKey(dateObj) {
 // 2. GERAR HTML DE UM CARD DE JOGO — Redesign 3 colunas
 function buildMatchCardHTML(match) {
   var agora = new Date();
-  var matchEnd = new Date(match.date.getTime() + 105 * 60 * 1000); // ~105 min de jogo
+  var matchEnd = new Date(match.date.getTime() + 135 * 60 * 1000); // ~135 min de jogo (com margem)
   var oneHourBefore = new Date(match.date.getTime() - 60 * 60 * 1000);
   
-  var cardClasses = 'match-card';
-  var isLive = agora >= match.date && agora <= matchEnd;
-  var isFinished = agora > matchEnd;
+  var res = globalOfficialResults[match.id];
+  var isLiveAPI = res && res.status === 'live';
+  var isFinishedAPI = res && res.status === 'finished';
+  
+  var isLive = isLiveAPI || (!isFinishedAPI && agora >= match.date && agora <= matchEnd);
+  var isFinished = isFinishedAPI || (agora > matchEnd && !isLiveAPI);
   var isDeadlineNear = agora >= oneHourBefore && agora < match.date;
+  
+  var cardClasses = 'match-card';
   
   if (isLive) cardClasses += ' is-live';
   if (isFinished) cardClasses += ' is-finished';
@@ -836,8 +841,14 @@ function updateHeaderStatus() {
   var nextMatch = null;
   
   ALL_MATCHES.forEach(function(match) {
-    var matchEnd = new Date(match.date.getTime() + 105 * 60 * 1000);
-    if (agora >= match.date && agora <= matchEnd) {
+    var matchEnd = new Date(match.date.getTime() + 135 * 60 * 1000);
+    var res = globalOfficialResults[match.id];
+    var isLiveAPI = res && res.status === 'live';
+    var isFinishedAPI = res && res.status === 'finished';
+    
+    var isLive = isLiveAPI || (!isFinishedAPI && agora >= match.date && agora <= matchEnd);
+    
+    if (isLive) {
       liveMatch = match;
     }
     if (!nextMatch && match.date > agora) {
@@ -926,7 +937,10 @@ function updateLiveTab() {
   var minuteElapsed = Math.floor((agora - m.date) / 60000);
   var minDisplay = minuteElapsed > 90 ? '90+' + (minuteElapsed - 90) : minuteElapsed + "'";
   
-  var isFinished = !!(globalOfficialResults[currentLiveMatchId] && globalOfficialResults[currentLiveMatchId].home !== undefined);
+  var matchEnd = new Date(m.date.getTime() + 135 * 60 * 1000);
+  var isFinishedAPI = res && res.status === 'finished';
+  var isLiveAPI = res && res.status === 'live';
+  var isFinished = isFinishedAPI || (agora > matchEnd && !isLiveAPI);
   
   // Placar Atual
   document.getElementById('live-real-score').innerHTML = 
