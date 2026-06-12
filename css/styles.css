@@ -1922,4 +1922,8 @@ h1, h2, h3, h4, .condensed {
 .comp-badge.errou { background: rgba(239, 83, 80, 0.2); color: #EF5350; }
 .comp-badge.none { background: transparent; color: var(--text-muted); }
 
+/* Bracket CSS */
+.bracket-column { display: flex; flex-direction: column; justify-content: space-around; min-width: 200px; gap: 20px; }
+.bracket-match { background: #1a1a1a; border: 1px solid var(--border-subtle); padding: 10px; border-radius: 6px; font-size: 0.9rem; text-align: center; }
+
 
