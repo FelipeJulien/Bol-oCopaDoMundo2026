@@ -913,110 +913,81 @@ function updateHeaderStatus() {
 // 11.5 LIVE TAB LÓGICA (Transmissão)
 // =============================================
 
-function parseStreamUrl(url) {
-  if (!url) return null;
-  // Twitch
-  if (url.includes('twitch.tv/')) {
-    const parts = url.split('twitch.tv/');
-    return { type: 'twitch', id: parts[1].split('?')[0].split('/')[0] };
-  }
-  // YouTube
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  if (match && match[2].length === 11) {
-    return { type: 'youtube', id: match[2] };
-  }
-  return { type: 'youtube', id: url }; // fallback
-}
-
 function updateLiveTab() {
-  if (!currentLiveMatchId) {
-    document.getElementById('live-tab-content').style.display = 'none';
+  var container = document.getElementById('live-games-container');
+  if (!container) return;
+  
+  var agora = new Date();
+  var liveMatches = [];
+  
+  // 1. Identificar quais jogos estão ao vivo
+  ALL_MATCHES.forEach(function(m) {
+    var res = globalOfficialResults[m.id] || { home: 0, away: 0, canceled: false };
+    var matchEnd = new Date(m.date.getTime() + 135 * 60 * 1000); // margem de 135 min
+    var isLiveAPI = res.status === 'live';
+    var isFinishedAPI = res.status === 'finished';
+    var isFinished = isFinishedAPI || (agora > matchEnd && !isLiveAPI);
+    var isLiveLocal = !isFinished && agora >= m.date && agora <= matchEnd;
+    
+    if (isLiveAPI || isLiveLocal) {
+      liveMatches.push({ match: m, result: res });
+    }
+  });
+  
+  // 2. Se não houver jogos
+  if (liveMatches.length === 0) {
+    container.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 1.1rem; padding: 40px 0;">Nenhum jogo rolando no momento.</div>';
     return;
   }
   
-  // Garantir que está visível
-  document.getElementById('live-tab-content').style.display = 'block';
-  
-  var m = ALL_MATCHES.find(x => x.id === currentLiveMatchId);
-  var res = globalOfficialResults[currentLiveMatchId] || { home: 0, away: 0, canceled: false };
-  var myPick = globalPicks[currentLiveMatchId];
-  var agora = new Date();
-  
-  var minuteElapsed = Math.floor((agora - m.date) / 60000);
-  var minDisplay = minuteElapsed > 90 ? '90+' + (minuteElapsed - 90) : minuteElapsed + "'";
-  
-  var matchEnd = new Date(m.date.getTime() + 135 * 60 * 1000);
-  var isFinishedAPI = res && res.status === 'finished';
-  var isLiveAPI = res && res.status === 'live';
-  var isFinished = isFinishedAPI || (agora > matchEnd && !isLiveAPI);
-  
-  // Placar Atual
-  document.getElementById('live-real-score').innerHTML = 
-    '<img src="https://flagcdn.com/w40/' + m.home.code + '.png" style="border-radius:4px;"> ' + 
-    m.home.name + ' <span style="color:#FFD700; margin:0 10px;">' + res.home + ' × ' + res.away + '</span> ' + m.away.name +
-    ' <img src="https://flagcdn.com/w40/' + m.away.code + '.png" style="border-radius:4px;">';
+  // 3. Renderizar um card para cada jogo ao vivo
+  var html = '';
+  liveMatches.forEach(function(item) {
+    var m = item.match;
+    var res = item.result;
+    var myPick = globalPicks[m.id];
+    var minuteElapsed = Math.floor((agora - m.date) / 60000);
+    var minDisplay = minuteElapsed > 90 ? '90+' + (minuteElapsed - 90) : minuteElapsed + "'";
     
-  document.getElementById('live-match-minute').innerHTML = '⏱ ' + minDisplay;
-  
-  // Palpite
-  var pickCard = document.getElementById('live-pick-card');
-  var pickStatus = document.getElementById('live-pick-status');
-  var userPickHtml = '';
-  
-  if (myPick) {
-    userPickHtml = '<img src="https://flagcdn.com/w40/' + m.home.code + '.png" style="border-radius:4px; opacity:0.8;"> ' + 
-    '<span style="opacity:0.8;">' + m.home.name + '</span> <span style="margin:0 10px;">' + myPick.home + ' × ' + myPick.away + '</span> <span style="opacity:0.8;">' + m.away.name + '</span>' +
-    ' <img src="https://flagcdn.com/w40/' + m.away.code + '.png" style="border-radius:4px; opacity:0.8;">';
+    html += '<div class="live-cards-container" style="display: flex; flex-direction: column; md:flex-row; gap: 16px; margin-bottom: 24px;">';
     
-    pickCard.style.borderColor = 'var(--accent-gold)';
-    pickStatus.innerHTML = '<span style="color:var(--accent-gold);">Em Aberto (Jogo rolando)</span>';
+    // -- Placar Atual
+    html += '<div class="live-card" style="flex: 1; background: #1a1a1a; border: 1px solid var(--accent-gold); border-radius: 12px; padding: 20px; text-align: center;">';
+    html += '<h4 style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">Placar Atual</h4>';
+    html += '<div style="display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 1.5rem; font-weight: bold; color: white;">';
+    html += '<img src="https://flagcdn.com/w40/' + m.home.code + '.png" style="border-radius:4px;"> ';
+    html += m.home.name + ' <span style="color:#FFD700; margin:0 10px;">' + res.home + ' × ' + res.away + '</span> ' + m.away.name;
+    html += ' <img src="https://flagcdn.com/w40/' + m.away.code + '.png" style="border-radius:4px;">';
+    html += '</div>';
+    html += '<div style="color: var(--state-live); font-weight: 600; margin-top: 12px; font-size: 0.9rem;">⏱ ' + minDisplay + '</div>';
+    html += '</div>';
     
-    if (isFinished) {
-      if (myPick.home === res.home && myPick.away === res.away) {
-        pickCard.style.borderColor = 'var(--admin-success)';
-        pickStatus.innerHTML = '<span style="color:var(--admin-success);">Placar Exato! +3 pts</span>';
-      } else if (
-        (myPick.home > myPick.away && res.home > res.away) ||
-        (myPick.home < myPick.away && res.home < res.away) ||
-        (myPick.home === myPick.away && res.home === res.away)
-      ) {
-        pickCard.style.borderColor = '#3b82f6';
-        pickStatus.innerHTML = '<span style="color:#3b82f6;">Acertou Vencedor! +1 pt</span>';
-      } else {
-        pickCard.style.borderColor = '#e11d48';
-        pickStatus.innerHTML = '<span style="color:#e11d48;">Errou! 0 pts</span>';
-      }
+    // -- Seu Palpite
+    var pickCardBorder = 'var(--border-subtle)';
+    var pickStatusHtml = '';
+    var userPickHtml = '<span style="color:var(--text-muted); font-size: 1rem; font-weight: normal;">Você não apostou neste jogo.</span>';
+    
+    if (myPick) {
+      userPickHtml = '<img src="https://flagcdn.com/w40/' + m.home.code + '.png" style="border-radius:4px; opacity:0.8;"> ' + 
+      '<span style="opacity:0.8;">' + m.home.name + '</span> <span style="margin:0 10px;">' + myPick.home + ' × ' + myPick.away + '</span> <span style="opacity:0.8;">' + m.away.name + '</span>' +
+      ' <img src="https://flagcdn.com/w40/' + m.away.code + '.png" style="border-radius:4px; opacity:0.8;">';
+      
+      pickCardBorder = 'var(--accent-gold)';
+      pickStatusHtml = '<span style="color:var(--accent-gold);">Em Aberto (Jogo rolando)</span>';
     }
-  } else {
-    userPickHtml = '<span style="color:var(--text-muted); font-size: 1rem; font-weight: normal;">Você não apostou neste jogo.</span>';
-    pickCard.style.borderColor = 'var(--border-subtle)';
-    pickStatus.innerHTML = '';
-  }
+    
+    html += '<div class="live-card" style="flex: 1; background: #1a1a1a; border: 1px solid ' + pickCardBorder + '; border-radius: 12px; padding: 20px; text-align: center; transition: all 0.3s ease;">';
+    html += '<h4 style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">Seu Palpite</h4>';
+    html += '<div style="display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 1.5rem; font-weight: bold; color: white;">';
+    html += userPickHtml;
+    html += '</div>';
+    html += '<div style="margin-top: 12px; font-size: 0.9rem; font-weight: 600;">' + pickStatusHtml + '</div>';
+    html += '</div>';
+    
+    html += '</div>'; // end cards container
+  });
   
-  document.getElementById('live-user-pick').innerHTML = userPickHtml;
-  
-  // Atualizar Iframe se a aba estiver ativa, ou pausar se não estiver
-  var iframe = document.getElementById('live-youtube-iframe');
-  var streamObj = parseStreamUrl(globalLiveConfig.youtubeUrl);
-  var currentUrl = iframe.src;
-  
-  // Se a aba estiver ativa e tivermos um ID, carregar o vídeo
-  var isTabActive = document.getElementById('tab-transmissao').classList.contains('active');
-  if (isTabActive && streamObj) {
-    var expectedUrl = '';
-    if (streamObj.type === 'twitch') {
-      expectedUrl = 'https://player.twitch.tv/?channel=' + streamObj.id + '&parent=' + window.location.hostname + '&autoplay=true';
-    } else {
-      expectedUrl = 'https://www.youtube.com/embed/' + streamObj.id + '?autoplay=1';
-    }
-    if (currentUrl !== expectedUrl && (!currentUrl.includes(streamObj.id))) {
-      iframe.src = expectedUrl;
-    }
-  } else {
-    // Se a aba não está ativa, limpa o iframe para não tocar áudio oculto
-    if (currentUrl) iframe.src = '';
-  }
+  container.innerHTML = html;
 }
 
 // =============================================
@@ -1248,9 +1219,9 @@ function initApp() {
 
   dbAPI.listenToLiveConfig((config) => {
     globalLiveConfig = config || {};
-    // Atualiza o player se a aba Transmissão estiver ativa
-    var isTabActive = document.getElementById('tab-transmissao') && document.getElementById('tab-transmissao').classList.contains('active');
-    if (isTabActive && currentLiveMatchId) {
+    // Atualiza aba de jogos no momento
+    var isTabActive = document.getElementById('tab-jogos-momento') && document.getElementById('tab-jogos-momento').classList.contains('active');
+    if (isTabActive) {
       if (typeof updateLiveTab === 'function') updateLiveTab();
     }
   });
