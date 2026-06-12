@@ -396,31 +396,47 @@ function apiNameToLocalKey(apiName) {
 // Busca e sincroniza resultados da API
 async function fetchAndSyncResults() {
   const API_URL = 'https://worldcup26.ir/get/games';
-  const CORS_PROXY = 'https://corsproxy.io/?url=';
+  
+  // Lista de proxies CORS para fallback em cascata
+  const CORS_PROXIES = [
+    'https://api.allorigins.win/raw?url=',
+    'https://corsproxy.io/?url=',
+    'https://api.codetabs.com/v1/proxy?quest='
+  ];
 
   let apiData = null;
 
   // Tentar chamada direta primeiro
   try {
-    const resp = await fetch(API_URL, { signal: AbortSignal.timeout(10000) });
+    const resp = await fetch(API_URL, { signal: AbortSignal.timeout(8000) });
     if (resp.ok) {
       apiData = await resp.json();
+      console.log('Auto-sync: API direta respondeu com sucesso.');
     }
   } catch (e) {
-    console.log('API direta falhou, tentando CORS proxy...', e.message);
+    console.log('Auto-sync: API direta bloqueada (CORS), tentando proxies...');
   }
 
-  // Fallback: CORS proxy
+  // Fallback: tentar cada proxy CORS em sequência
   if (!apiData) {
-    try {
-      const resp = await fetch(CORS_PROXY + encodeURIComponent(API_URL), { signal: AbortSignal.timeout(10000) });
-      if (resp.ok) {
-        apiData = await resp.json();
+    for (let i = 0; i < CORS_PROXIES.length; i++) {
+      try {
+        const proxyUrl = CORS_PROXIES[i] + encodeURIComponent(API_URL);
+        const resp = await fetch(proxyUrl, { signal: AbortSignal.timeout(10000) });
+        if (resp.ok) {
+          apiData = await resp.json();
+          console.log('Auto-sync: sucesso via proxy #' + (i + 1));
+          break;
+        }
+      } catch (e) {
+        console.log('Auto-sync: proxy #' + (i + 1) + ' falhou:', e.message);
       }
-    } catch (e2) {
-      console.error('Auto-sync falhou (proxy também):', e2.message);
-      return { updated: 0, total: 0, error: true };
     }
+  }
+
+  if (!apiData) {
+    console.error('Auto-sync: todos os proxies falharam. Tentará novamente em 2 min.');
+    return { updated: 0, total: 0, error: true };
   }
 
   if (!apiData || !apiData.games) {
