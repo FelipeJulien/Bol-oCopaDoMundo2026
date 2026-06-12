@@ -368,5 +368,169 @@ const dbAPI = {
         callback(ranking, results);
       });
     });
+  },
+
+  // Normalizar string para comparação de bônus
+  normalizeString: (str) => {
+    if (!str) return '';
+    return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
   }
 };
+
+// =============================================
+// 9. AUTO-SYNC — WorldCup26.ir API
+// =============================================
+
+// Mapeamento de nomes da API para nomes locais (_RAW keys)
+const API_TEAM_NAME_MAP = {
+  'United States': 'USA',
+  'Bosnia and Herzegovina': 'Bosnia & Herzegovina',
+  'Democratic Republic of the Congo': 'DR Congo'
+};
+
+// Converte nome da API para chave local
+function apiNameToLocalKey(apiName) {
+  return API_TEAM_NAME_MAP[apiName] || apiName;
+}
+
+// Busca e sincroniza resultados da API
+async function fetchAndSyncResults() {
+  const API_URL = 'https://worldcup26.ir/get/games';
+  const CORS_PROXY = 'https://corsproxy.io/?url=';
+
+  let apiData = null;
+
+  // Tentar chamada direta primeiro
+  try {
+    const resp = await fetch(API_URL, { signal: AbortSignal.timeout(10000) });
+    if (resp.ok) {
+      apiData = await resp.json();
+    }
+  } catch (e) {
+    console.log('API direta falhou, tentando CORS proxy...', e.message);
+  }
+
+  // Fallback: CORS proxy
+  if (!apiData) {
+    try {
+      const resp = await fetch(CORS_PROXY + encodeURIComponent(API_URL), { signal: AbortSignal.timeout(10000) });
+      if (resp.ok) {
+        apiData = await resp.json();
+      }
+    } catch (e2) {
+      console.error('Auto-sync falhou (proxy também):', e2.message);
+      return { updated: 0, total: 0, error: true };
+    }
+  }
+
+  if (!apiData || !apiData.games) {
+    console.error('Auto-sync: resposta inválida da API');
+    return { updated: 0, total: 0, error: true };
+  }
+
+  // Filtrar apenas jogos finalizados
+  const finishedGames = apiData.games.filter(function(g) {
+    return g.finished === 'TRUE' && g.type === 'group';
+  });
+
+  if (finishedGames.length === 0) {
+    return { updated: 0, total: 0, error: false };
+  }
+
+  // Buscar resultados atuais do Firebase/localStorage
+  const currentResults = await dbAPI.getResults();
+  const newResults = {};
+  let updatedCount = 0;
+
+  finishedGames.forEach(function(apiGame) {
+    const homeKey = apiNameToLocalKey(apiGame.home_team_name_en);
+    const awayKey = apiNameToLocalKey(apiGame.away_team_name_en);
+    const homeScore = parseInt(apiGame.home_score);
+    const awayScore = parseInt(apiGame.away_score);
+
+    if (isNaN(homeScore) || isNaN(awayScore)) return;
+
+    // Encontrar o match local correspondente
+    const localMatch = ALL_MATCHES.find(function(m) {
+      const localHomeKey = Object.keys(TEAM_MAP).find(function(k) { return TEAM_MAP[k] === m.home; });
+      const localAwayKey = Object.keys(TEAM_MAP).find(function(k) { return TEAM_MAP[k] === m.away; });
+      return localHomeKey === homeKey && localAwayKey === awayKey;
+    });
+
+    if (!localMatch) {
+      console.warn('Auto-sync: jogo não encontrado localmente:', homeKey, 'vs', awayKey);
+      return;
+    }
+
+    // Verificar se o resultado já existe e é igual
+    const existing = currentResults[localMatch.id];
+    if (existing && existing.home === homeScore && existing.away === awayScore && !existing.canceled) {
+      return; // Já está atualizado
+    }
+
+    // Novo resultado ou resultado diferente
+    newResults[localMatch.id] = { home: homeScore, away: awayScore, canceled: false };
+    updatedCount++;
+  });
+
+  // Salvar apenas se há novidades
+  if (updatedCount > 0) {
+    // Lock para evitar escritas duplicadas entre abas
+    const lockKey = 'api_sync_lock';
+    const now = Date.now();
+    const lastLock = parseInt(localStorage.getItem(lockKey) || '0');
+
+    if (now - lastLock < 30000) {
+      // Outra aba sincronizou há menos de 30s, pular
+      console.log('Auto-sync: outra aba já sincronizou recentemente.');
+      return { updated: 0, total: finishedGames.length, error: false, skipped: true };
+    }
+
+    localStorage.setItem(lockKey, String(now));
+
+    try {
+      await dbAPI.saveResult(newResults);
+      console.log('Auto-sync: ' + updatedCount + ' resultado(s) atualizado(s) via API.');
+    } catch (e) {
+      console.error('Auto-sync: erro ao salvar resultados:', e);
+      return { updated: 0, total: finishedGames.length, error: true };
+    }
+  }
+
+  return { updated: updatedCount, total: finishedGames.length, error: false };
+}
+
+// Timer global para auto-sync
+let _autoSyncInterval = null;
+
+function startAutoSync(intervalMs) {
+  if (_autoSyncInterval) clearInterval(_autoSyncInterval);
+
+  intervalMs = intervalMs || 120000; // 2 minutos padrão
+
+  // Executar imediatamente na primeira vez
+  fetchAndSyncResults().then(function(result) {
+    if (!result.error && result.updated > 0) {
+      console.log('🔄 Auto-sync inicial: ' + result.updated + ' resultado(s) sincronizado(s)');
+    }
+  });
+
+  // Repetir a cada intervalo
+  _autoSyncInterval = setInterval(function() {
+    fetchAndSyncResults().then(function(result) {
+      if (!result.error && result.updated > 0) {
+        console.log('🔄 Auto-sync: ' + result.updated + ' resultado(s) sincronizado(s)');
+      }
+    });
+  }, intervalMs);
+
+  console.log('✅ Auto-sync ativado — verificando API a cada ' + (intervalMs / 1000) + 's');
+}
+
+function stopAutoSync() {
+  if (_autoSyncInterval) {
+    clearInterval(_autoSyncInterval);
+    _autoSyncInterval = null;
+    console.log('⏹ Auto-sync desativado');
+  }
+}
