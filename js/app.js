@@ -1068,7 +1068,11 @@ function initApp() {
     renderComparativo(ranking, officialResults);
     if (currentUser) {
       var data = await dbAPI.getUserData(currentUser);
-      currentUserName = data.name || 'Anônimo';
+      
+      // Fallback seguro: se DB não retornou nome, usa do localStorage
+      var authName = localStorage.getItem('auth_name');
+      currentUserName = data.name || authName || 'Anônimo';
+      
       document.getElementById('display-user-name').innerText = currentUserName;
       
       // Update avatar

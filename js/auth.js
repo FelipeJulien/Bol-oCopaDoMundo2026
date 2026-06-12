@@ -43,6 +43,12 @@ document.getElementById('btn-login').addEventListener('click', () => {
     const uid = slugify(nameInput);
     localStorage.setItem('auth_uid', uid);
     localStorage.setItem('auth_name', nameInput);
+    
+    // Save to Firestore right away to prevent anonymous bugs
+    if (typeof dbAPI !== 'undefined' && dbAPI.saveUserName) {
+      dbAPI.saveUserName(uid, nameInput);
+    }
+    
     checkAuth();
   } else {
     alert("Por favor, informe seu Nome de Guerra.");

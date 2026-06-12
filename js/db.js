@@ -249,6 +249,18 @@ const dbAPI = {
     }
   },
 
+  saveUserName: async (userId, userName) => {
+    let localData = JSON.parse(localStorage.getItem('user_' + userId) || '{"picks":{}, "bonus":{}}');
+    localData.name = userName;
+    localStorage.setItem('user_' + userId, JSON.stringify(localData));
+    if (db) {
+      await db.collection('users').doc(userId).set({
+        name: userName,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, {merge: true});
+    }
+  },
+
   saveUserAvatar: async (userId, countryCode) => {
     let localData = JSON.parse(localStorage.getItem('user_' + userId) || '{"picks":{}, "bonus":{}}');
     localData.avatar = countryCode;
