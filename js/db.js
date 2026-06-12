@@ -261,6 +261,24 @@ const dbAPI = {
     }
   },
 
+  saveLiveConfig: async (config) => {
+    localStorage.setItem('live_config', JSON.stringify(config));
+    if (db) {
+      await db.collection('meta').doc('live_config').set(config, {merge: true});
+    }
+  },
+
+  listenToLiveConfig: (callback) => {
+    if (db) {
+      db.collection('meta').doc('live_config').onSnapshot(function(snap) {
+        if (snap.exists) callback(snap.data());
+      });
+    } else {
+      const l = localStorage.getItem('live_config');
+      if (l) callback(JSON.parse(l));
+    }
+  },
+
   saveUserAvatar: async (userId, countryCode) => {
     let localData = JSON.parse(localStorage.getItem('user_' + userId) || '{"picks":{}, "bonus":{}}');
     localData.avatar = countryCode;
@@ -543,7 +561,7 @@ let _autoSyncInterval = null;
 function startAutoSync(intervalMs) {
   if (_autoSyncInterval) clearInterval(_autoSyncInterval);
 
-  intervalMs = intervalMs || 120000; // 2 minutos padrão
+  intervalMs = intervalMs || 30000; // 30 segundos padrão (polling rápido para navbar)
 
   // Executar imediatamente na primeira vez
   fetchAndSyncResults().then(function(result) {

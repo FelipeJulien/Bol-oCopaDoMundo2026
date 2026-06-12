@@ -262,6 +262,19 @@ window.salvarResultadoBonus = async function(key) {
 };
 
 // =============================================
+// SEÇÃO: CONFIGURAÇÃO AO VIVO (Cazé TV)
+// =============================================
+const btnSaveYoutube = document.getElementById('btn-save-youtube');
+if (btnSaveYoutube) {
+  btnSaveYoutube.addEventListener('click', async () => {
+    const url = document.getElementById('input-youtube-url').value.trim();
+    await dbAPI.saveLiveConfig({ youtubeUrl: url });
+    logAction('Salvar Config Live', `URL alterada para: ${url}`, '');
+    showAdminToast("Configuração da Live salva com sucesso!");
+  });
+}
+
+// =============================================
 // SEÇÃO: RANKING & USUÁRIOS
 // =============================================
 function renderRanking() {

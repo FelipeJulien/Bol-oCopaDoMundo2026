@@ -41,6 +41,7 @@
       <aside class="admin-sidebar">
         <ul class="admin-menu">
           <li><button class="menu-btn active" data-target="sec-jogos">Jogos (Resultados)</button></li>
+          <li><button class="menu-btn" data-target="sec-live">Configuração Ao Vivo</button></li>
           <li><button class="menu-btn" data-target="sec-apostas">Apostas (Edição)</button></li>
           <li><button class="menu-btn" data-target="sec-usuarios">Usuários</button></li>
           <li><button class="menu-btn" data-target="sec-ranking">Ranking Geral</button></li>
@@ -57,6 +58,20 @@
           <p style="color: var(--admin-muted); margin-bottom: 24px;">Lance o placar oficial para encerrar o jogo e disparar o cálculo de pontos automático para todos os usuários.</p>
           <div id="admin-jogos-list">
             Carregando jogos...
+          </div>
+        </section>
+
+        <!-- SEÇÃO: CONFIGURAÇÃO AO VIVO -->
+        <section id="sec-live" class="admin-section">
+          <h2 class="section-title condensed">Configurações da Transmissão (Cazé TV)</h2>
+          <p style="color: var(--admin-muted); margin-bottom: 24px;">Insira a URL ou o ID do vídeo do YouTube para atualizar o player da transmissão ao vivo no site.</p>
+          
+          <div class="admin-game-card" style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="flex: 1;">
+              <h3 style="margin:0 0 8px 0;">URL do YouTube</h3>
+              <input type="text" id="input-youtube-url" class="modal-input" placeholder="Ex: https://www.youtube.com/watch?v=CRtjePKnGvA" style="width: 100%; max-width: 500px;">
+            </div>
+            <button class="btn-admin primary" id="btn-save-youtube">Salvar URL</button>
           </div>
         </section>
 

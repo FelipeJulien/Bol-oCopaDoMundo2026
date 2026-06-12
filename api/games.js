@@ -35,8 +35,8 @@ export default async function handler(req, res) {
       };
     });
 
-    // Cache por 60 segundos (mantém chamadas dentro do limite gratuito de 10/min)
-    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30');
+    // Cache por 30 segundos (mantém chamadas seguras dentro do limite de 10/min)
+    res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=10');
     res.setHeader('Access-Control-Allow-Origin', '*');
     
     return res.status(200).json({ games });

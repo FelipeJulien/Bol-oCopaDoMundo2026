@@ -845,15 +845,30 @@ function updateHeaderStatus() {
   });
   
   if (liveMatch) {
-    // Jogo ao vivo — destaque em vermelho
+    // Busca placar atual (mesmo q não tenha acabado)
+    var liveRes = globalOfficialResults[liveMatch.id] || { home: 0, away: 0 };
     var minuteElapsed = Math.floor((agora - liveMatch.date) / 60000);
     var minDisplay = minuteElapsed > 90 ? '90+' + (minuteElapsed - 90) : minuteElapsed + "'";
+    
+    currentLiveMatchId = liveMatch.id;
+    
+    // Header clicável
+    els.headerStatus.style.cursor = 'pointer';
+    els.headerStatus.onclick = openLiveModal;
+
     els.headerStatus.innerHTML = 
       '<span class="live-dot"></span>' +
       '<span class="live-text">AO VIVO</span>' +
-      '<span class="status-highlight">' + liveMatch.home.name + ' vs ' + liveMatch.away.name + '</span>' +
-      '<span style="color:var(--state-live); font-weight:600;">' + minDisplay + '</span>';
+      '<img src="https://flagcdn.com/w20/' + liveMatch.home.code + '.png" class="gm-flag" style="margin:0 6px;">' +
+      '<span class="status-highlight">' + liveMatch.home.name + ' <strong style="color: #FFD700;">' + liveRes.home + ' × ' + liveRes.away + '</strong> ' + liveMatch.away.name + '</span>' +
+      '<img src="https://flagcdn.com/w20/' + liveMatch.away.code + '.png" class="gm-flag" style="margin:0 6px;">' +
+      '<span style="color:var(--state-live); font-weight:600; margin-left: 6px;">' + minDisplay + '</span>';
+      
   } else if (nextMatch) {
+    currentLiveMatchId = null;
+    els.headerStatus.style.cursor = 'default';
+    els.headerStatus.onclick = null;
+    
     // Próximo jogo com countdown real
     var dist = nextMatch.date - agora;
     var days = Math.floor(dist / (1000 * 60 * 60 * 24));
@@ -868,11 +883,116 @@ function updateHeaderStatus() {
     els.headerStatus.innerHTML = 
       '<span class="status-label">Copa do Mundo 2026 · Em andamento</span>' +
       '<span style="color:var(--text-muted); font-size:12px;">Próximo:</span>' +
+      '<img src="https://flagcdn.com/w20/' + nextMatch.home.code + '.png" class="gm-flag" style="margin:0 4px;">' +
       '<span class="status-highlight" style="font-size:13px;">' + nextMatch.home.name + ' vs ' + nextMatch.away.name + '</span>' +
+      '<img src="https://flagcdn.com/w20/' + nextMatch.away.code + '.png" class="gm-flag" style="margin:0 4px;">' +
       '<span class="next-game-countdown">' + countdownStr + '</span>';
   } else {
+    currentLiveMatchId = null;
+    els.headerStatus.style.cursor = 'default';
+    els.headerStatus.onclick = null;
     els.headerStatus.innerHTML = '<span class="status-label">Copa do Mundo 2026 · Em andamento</span>';
   }
+}
+
+// =============================================
+// 11.5 LIVE MODAL LÓGICA (Cazé TV)
+// =============================================
+const liveModal = document.getElementById('live-modal');
+const btnCloseLive = document.getElementById('btn-close-live');
+
+if (btnCloseLive) {
+  btnCloseLive.addEventListener('click', () => {
+    liveModal.classList.add('hidden');
+    // Para o vídeo parar de tocar
+    document.getElementById('live-youtube-iframe').src = '';
+  });
+}
+
+function extractYouTubeID(url) {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : url; // retorna o id ou a própria string se já for ID
+}
+
+function updateLiveModalData() {
+  if (!currentLiveMatchId || liveModal.classList.contains('hidden')) return;
+  
+  var m = ALL_MATCHES.find(x => x.id === currentLiveMatchId);
+  var res = globalOfficialResults[currentLiveMatchId] || { home: 0, away: 0, canceled: false };
+  var myPick = globalPicks[currentLiveMatchId];
+  var agora = new Date();
+  
+  var minuteElapsed = Math.floor((agora - m.date) / 60000);
+  var minDisplay = minuteElapsed > 90 ? '90+' + (minuteElapsed - 90) : minuteElapsed + "'";
+  
+  var isFinished = !!(globalOfficialResults[currentLiveMatchId] && globalOfficialResults[currentLiveMatchId].home !== undefined);
+  // Se ainda tá rodando, mas o jogo tem resultado, então já finalizou
+  // Mas como a API pode mandar "live", a gente não sabe 100% no app local se finished é true ou não (o db.js auto-sync cuida disso se a API disser TRUE).
+  // Se tiver time_elapsed !== 'notstarted', ele atualiza o res. Se finished === 'TRUE', ele encerra de vez.
+  
+  // Placar Atual
+  document.getElementById('live-real-score').innerHTML = 
+    '<img src="https://flagcdn.com/w40/' + m.home.code + '.png" style="border-radius:4px;"> ' + 
+    m.home.name + ' <span style="color:#FFD700; margin:0 10px;">' + res.home + ' × ' + res.away + '</span> ' + m.away.name +
+    ' <img src="https://flagcdn.com/w40/' + m.away.code + '.png" style="border-radius:4px;">';
+    
+  document.getElementById('live-match-minute').innerHTML = '⏱ ' + minDisplay;
+  
+  // Palpite
+  var pickCard = document.getElementById('live-pick-card');
+  var pickStatus = document.getElementById('live-pick-status');
+  var userPickHtml = '';
+  
+  if (myPick) {
+    userPickHtml = '<img src="https://flagcdn.com/w40/' + m.home.code + '.png" style="border-radius:4px; opacity:0.8;"> ' + 
+    '<span style="opacity:0.8;">' + m.home.name + '</span> <span style="margin:0 10px;">' + myPick.home + ' × ' + myPick.away + '</span> <span style="opacity:0.8;">' + m.away.name + '</span>' +
+    ' <img src="https://flagcdn.com/w40/' + m.away.code + '.png" style="border-radius:4px; opacity:0.8;">';
+    
+    // Cor
+    pickCard.style.borderColor = 'var(--accent-gold)';
+    pickStatus.innerHTML = '<span style="color:var(--accent-gold);">Em Aberto (Jogo rolando)</span>';
+    
+    // Se isFinished
+    if (isFinished) {
+      if (myPick.home === res.home && myPick.away === res.away) {
+        pickCard.style.borderColor = 'var(--admin-success)';
+        pickStatus.innerHTML = '<span style="color:var(--admin-success);">Placar Exato! +3 pts</span>';
+      } else if (
+        (myPick.home > myPick.away && res.home > res.away) ||
+        (myPick.home < myPick.away && res.home < res.away) ||
+        (myPick.home === myPick.away && res.home === res.away)
+      ) {
+        pickCard.style.borderColor = '#3b82f6';
+        pickStatus.innerHTML = '<span style="color:#3b82f6;">Acertou Vencedor! +1 pt</span>';
+      } else {
+        pickCard.style.borderColor = '#e11d48';
+        pickStatus.innerHTML = '<span style="color:#e11d48;">Errou! 0 pts</span>';
+      }
+    }
+    
+  } else {
+    userPickHtml = '<span style="color:var(--text-muted); font-size: 1rem; font-weight: normal;">Você não apostou neste jogo.</span>';
+    pickCard.style.borderColor = 'var(--border-subtle)';
+    pickStatus.innerHTML = '';
+  }
+  
+  document.getElementById('live-user-pick').innerHTML = userPickHtml;
+}
+
+function openLiveModal() {
+  if (!currentLiveMatchId) return;
+  liveModal.classList.remove('hidden');
+  
+  var yId = extractYouTubeID(globalLiveConfig.youtubeUrl);
+  if (yId) {
+    document.getElementById('live-youtube-iframe').src = 'https://www.youtube.com/embed/' + yId + '?autoplay=1';
+  } else {
+    document.getElementById('live-youtube-iframe').src = '';
+  }
+  
+  updateLiveModalData();
 }
 
 // 12. PERFIL DE USUÁRIO (BANDEIRA)
@@ -1019,8 +1139,12 @@ function populateBonusSelects() {
   });
 }
 
+let currentUserName = '';
+let globalPicks = {};
 let globalRanking = [];
 let globalOfficialResults = {};
+let globalLiveConfig = {};
+let currentLiveMatchId = null;
 
 // PONTO DE ENTRADA
 function initApp() {
@@ -1064,6 +1188,19 @@ function initApp() {
     if (btn) btn.click();
   }
 
+  dbAPI.listenToLiveConfig((config) => {
+    globalLiveConfig = config || {};
+    // Atualiza navbar se mudar o config (ex: admin mudou url)
+    if (!liveModal.classList.contains('hidden') && currentLiveMatchId) {
+      // Se tiver aberto e o video mudou
+      var yId = extractYouTubeID(globalLiveConfig.youtubeUrl);
+      var frame = document.getElementById('live-youtube-iframe');
+      if (yId && !frame.src.includes(yId)) {
+        frame.src = 'https://www.youtube.com/embed/' + yId + '?autoplay=1';
+      }
+    }
+  });
+
   dbAPI.listenToUpdates(async function(ranking, officialResults) {
     globalRanking = ranking;
     globalOfficialResults = officialResults;
@@ -1072,6 +1209,10 @@ function initApp() {
     renderSidebarRanking(ranking);
     renderComparativo(ranking, officialResults);
     renderGroups();
+    
+    // Atualiza modal se estiver aberto
+    updateLiveModalData();
+    
     if (currentUser) {
       var data = await dbAPI.getUserData(currentUser);
       
