@@ -12,7 +12,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   
   <!-- CSS Global -->
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/style.css">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -120,6 +122,7 @@
         <button class="tab-btn" data-target="tab-comparativo">Comparativo</button>
         <button class="tab-btn" data-target="tab-jogos-momento" id="tab-btn-jogos-momento"><span class="live-dot" style="display:inline-block; margin-right: 6px;"></span>Jogos no Momento</button>
         <button class="tab-btn" data-target="tab-ranking">Ranking Geral</button>
+        <button class="tab-btn" data-target="tab-perfil">Meu Perfil</button>
       </nav>
 
       <!-- CONTENT AREA -->
@@ -154,10 +157,52 @@
 
         <!-- ABA: MATA-MATA -->
         <section id="tab-matamata" class="tab-pane">
-          <div class="locked-view">
-            <div class="icon">🔒</div>
-            <h3 class="condensed">Mata-Mata Bloqueado</h3>
-            <p style="color:var(--text-secondary); margin-top:10px; max-width:400px; line-height:1.5;">Atenção: Esta interface de chaves será liberada após o encerramento definitivo da fase de grupos.</p>
+          <h2 class="section-title">Chaveamento Mata-Mata</h2>
+          <p class="section-desc">Acompanhe a progressão das 32 seleções até a grande final.</p>
+          <div class="bracket-wrapper" style="overflow-x: auto; margin-top: 24px; padding-bottom: 20px;">
+            <div id="bracket-container" style="display: flex; min-width: 1200px; gap: 40px; justify-content: space-between;">
+              <!-- Left side (16-avos -> Final) -->
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </section>
+
+        <!-- ABA: MEU PERFIL (DASHBOARD) -->
+        <section id="tab-perfil" class="tab-pane">
+          <h2 class="section-title">Meu Perfil e Estatísticas</h2>
+          <p class="section-desc">Seu desempenho no bolão em gráficos e números.</p>
+          
+          <div style="display: grid; grid-template-columns: 1fr; gap: 24px; margin-top: 24px;">
+            <!-- Linha 1: Cards e Pizza -->
+            <div style="display: flex; flex-wrap: wrap; gap: 24px;">
+              <div class="stats-card" style="flex: 1; min-width: 250px; background: var(--bg-card); padding: 24px; border-radius: 12px; border: 1px solid var(--border-subtle); text-align: center;">
+                <h3 style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase;">Aproveitamento (Acertos)</h3>
+                <div style="max-width: 200px; margin: 0 auto; margin-top: 16px;">
+                  <canvas id="chart-pizza-acertos"></canvas>
+                </div>
+              </div>
+
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 24px; min-width: 250px;">
+                <div class="stats-card" style="background: var(--bg-card); padding: 24px; border-radius: 12px; border: 1px solid var(--border-subtle);">
+                  <h3 style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase; text-align: center;">Seleção "Time da Sorte"</h3>
+                  <div id="stats-time-sorte" style="font-size: 1.5rem; font-weight: bold; text-align: center; color: var(--accent-gold); margin-top: 16px;">Carregando...</div>
+                  <p style="text-align: center; color: var(--text-secondary); font-size: 0.85rem; margin-top: 4px;">Time que te rendeu mais pontos.</p>
+                </div>
+                <div class="stats-card" style="background: var(--bg-card); padding: 24px; border-radius: 12px; border: 1px solid var(--border-subtle);">
+                  <h3 style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase; text-align: center;">Seleção "Pé Frio"</h3>
+                  <div id="stats-time-azar" style="font-size: 1.5rem; font-weight: bold; text-align: center; color: #ef4444; margin-top: 16px;">Carregando...</div>
+                  <p style="text-align: center; color: var(--text-secondary); font-size: 0.85rem; margin-top: 4px;">Time que te fez perder mais pontos.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Linha 2: Gráfico de Linha (Evolução de Pontos) -->
+            <div class="stats-card" style="background: var(--bg-card); padding: 24px; border-radius: 12px; border: 1px solid var(--border-subtle);">
+              <h3 style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase; text-align: center; margin-bottom: 20px;">Sua Evolução no Bolão (Pontos Acumulados)</h3>
+              <div style="width: 100%; height: 300px;">
+                <canvas id="chart-linha-evolucao"></canvas>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -391,7 +436,10 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-  <!-- LÓGICA DA APLICAÇÃO (Modularizada) -->
+  <!-- Confetti Lib -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- App Scripts -->
   <script src="js/db.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/app.js"></script>

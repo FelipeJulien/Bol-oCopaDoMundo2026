@@ -374,13 +374,67 @@ const dbAPI = {
           if (results.bonus_revelacao && userData.bonus_revelacao === results.bonus_revelacao) pts += 5;
           if (results.bonus_neymar_gol && userData.bonus_neymar_gol === results.bonus_neymar_gol) pts += 5;
 
-          // Feature 3 & 4: Incluir palpites para cruzar as informações na interface
           let picksData = {};
           picksSnap.forEach(function(pDoc) {
             picksData[pDoc.id] = pDoc.data();
           });
 
-          ranking.push({ id: userDoc.id, name: userData.name || 'Anônimo', pts: pts, exato: exato, vencedor: vencedor, avatar: userData.avatar_bandeira || '', picks: picksData, bonus_answers: { artilheiro: userData.bonus_artilheiro, ataque: userData.bonus_ataque, campeao: userData.bonus_campeao, decepcao: userData.bonus_decepcao, craque: userData.bonus_craque, goleiro: userData.bonus_goleiro, defensor: userData.bonus_defensor, revelacao: userData.bonus_revelacao, neymar_gol: userData.bonus_neymar_gol } });
+          // Badges Calculation
+          let badges = [];
+          
+          // Ordenar jogos finalizados pela data (usando ALL_MATCHES)
+          let userFinishedMatches = [];
+          ALL_MATCHES.forEach(function(m) {
+            const r = results[m.id];
+            const p = picksData[m.id];
+            if (r && r.home !== undefined && p && p.home !== undefined) {
+              let ptsMatch = 0;
+              if (p.home === r.home && p.away === r.away) ptsMatch = 3;
+              else if (
+                (p.home > p.away && r.home > r.away) ||
+                (p.home < p.away && r.home < r.away) ||
+                (p.home === p.away && r.home === r.away)
+              ) ptsMatch = 1;
+              userFinishedMatches.push({ match: m, pts: ptsMatch, totalGoals: r.home + r.away, exact: ptsMatch === 3 });
+            }
+          });
+
+          // Sort por data
+          userFinishedMatches.sort((a, b) => a.match.date - b.match.date);
+
+          // Mae Dinah (3 exatos seguidos) & Pe Frio (5 erros seguidos)
+          let currentExactStreak = 0;
+          let maxExactStreak = 0;
+          let currentMissStreak = 0;
+          let maxMissStreak = 0;
+
+          userFinishedMatches.forEach(function(um) {
+            if (um.exact) {
+              currentExactStreak++;
+              maxExactStreak = Math.max(maxExactStreak, currentExactStreak);
+            } else {
+              currentExactStreak = 0;
+            }
+
+            if (um.pts === 0) {
+              currentMissStreak++;
+              maxMissStreak = Math.max(maxMissStreak, currentMissStreak);
+            } else {
+              currentMissStreak = 0;
+            }
+          });
+
+          if (maxExactStreak >= 3) badges.push({ id: 'mae_dinah', icon: '🔮', title: 'Mãe Dináh (3 placares exatos seguidos)' });
+          if (maxMissStreak >= 5) badges.push({ id: 'pe_frio', icon: '🥶', title: 'Pé Frio (5 erros seguidos)' });
+
+          // Goleador (acerto exato no jogo com mais gols)
+          if (userFinishedMatches.length > 0) {
+            let maxGoals = Math.max(...userFinishedMatches.map(um => um.totalGoals));
+            let gotGoleador = userFinishedMatches.some(um => um.totalGoals === maxGoals && um.exact && maxGoals > 0);
+            if (gotGoleador) badges.push({ id: 'goleador', icon: '⚽', title: 'Goleador (Placar exato no jogo com mais gols)' });
+          }
+
+          ranking.push({ id: userDoc.id, name: userData.name || 'Anônimo', pts: pts, exato: exato, vencedor: vencedor, avatar: userData.avatar_bandeira || '', badges: badges, picks: picksData, bonus_answers: { artilheiro: userData.bonus_artilheiro, ataque: userData.bonus_ataque, campeao: userData.bonus_campeao, decepcao: userData.bonus_decepcao, craque: userData.bonus_craque, goleiro: userData.bonus_goleiro, defensor: userData.bonus_defensor, revelacao: userData.bonus_revelacao, neymar_gol: userData.bonus_neymar_gol } });
         }
         ranking.sort(function(a, b) { return b.pts - a.pts || b.exato - a.exato; });
         callback(ranking, results);

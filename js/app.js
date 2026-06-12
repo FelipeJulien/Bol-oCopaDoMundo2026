@@ -354,6 +354,24 @@ function renderBetResults(picks, officialResults) {
         badgeHtml = '+3 Placar exato';
         badgeClass = 'badge-exact';
         borderColor = '#22c55e';
+        
+        // Confetti Logic
+        try {
+          var seenExacts = JSON.parse(localStorage.getItem('seenExacts_' + currentUser) || '[]');
+          if (!seenExacts.includes(matchId) && r.status === 'finished') {
+            seenExacts.push(matchId);
+            localStorage.setItem('seenExacts_' + currentUser, JSON.stringify(seenExacts));
+            if (typeof confetti === 'function') {
+              confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#009c3b', '#ffdf00', '#002776']
+              });
+            }
+          }
+        } catch(e) {}
+
       } else if (
         (p.home > p.away && r.home > r.away) ||
         (p.home < p.away && r.home < r.away) ||
@@ -635,14 +653,21 @@ function renderSidebarRanking(ranking) {
     }
   }
 
-  top5.forEach(function(user, idx) {
-    if (user.id === currentUser) isMeInTop = true;
-    var isMeClass = user.id === currentUser ? ' me' : '';
-    html += '<div class="ranking-item rank-item-clickable' + isMeClass + '" data-id="' + user.id + '">';
+  top5.forEach(function(u, idx) {
+    if (u.id === currentUser) isMeInTop = true;
+    var isMeClass = u.id === currentUser ? ' me' : '';
+    html += '<div class="ranking-item rank-item-clickable' + isMeClass + '" data-id="' + u.id + '">';
     html += '<div class="rank-pos">' + (idx + 1) + 'º</div>';
-    html += renderAvatar(user.avatar, user.name);
-    html += '<div class="rank-name">' + user.name + '</div>';
-    html += '<div class="rank-pts">' + user.pts + ' pts <span class="rank-breakdown">(' + (user.exato||0) + '🎯 + ' + (user.vencedor||0) + '✓)</span></div>';
+    html += renderAvatar(u.avatar, u.name);
+    
+    // Render Badges
+    var badgesHtml = '';
+    if (u.badges && u.badges.length > 0) {
+      badgesHtml = '<span style="margin-left: 6px; font-size: 0.9rem;" title="' + u.badges.map(b => b.title).join(', ') + '">' + u.badges.map(b => b.icon).join('') + '</span>';
+    }
+
+    html += '<div class="rank-name">' + u.name + badgesHtml + '</div>';
+    html += '<div class="rank-pts">' + u.pts + ' pts</div>';
     html += '</div>';
   });
   if (!isMeInTop && currentUser) {
@@ -654,7 +679,7 @@ function renderSidebarRanking(ranking) {
       html += '<div class="rank-pos">' + (myRankIdx + 1) + 'º</div>';
       html += renderAvatar(me.avatar, me.name);
       html += '<div class="rank-name">' + me.name + '</div>';
-      html += '<div class="rank-pts">' + me.pts + ' pts <span class="rank-breakdown">(' + (me.exato||0) + '🎯 + ' + (me.vencedor||0) + '✓)</span></div>';
+      html += '<div class="rank-pts">' + me.pts + ' pts</div>';
       html += '</div>';
     }
   }
@@ -1031,7 +1056,13 @@ function renderFullRanking() {
       html += '<div class="avatar-placeholder" style="width:24px; height:24px; font-size:10px;">A</div>';
     }
     
-    html += '<span>' + (u.name || 'Anônimo') + (isMe ? ' (Você)' : '') + '</span></td>';
+    // Render Badges
+    var badgesHtml = '';
+    if (u.badges && u.badges.length > 0) {
+      badgesHtml = '<span style="margin-left: 8px; font-size: 1.1rem; cursor: help;" title="' + u.badges.map(b => b.title).join(', ') + '">' + u.badges.map(b => b.icon).join(' ') + '</span>';
+    }
+
+    html += '<span>' + (u.name || 'Anônimo') + (isMe ? ' (Você)' : '') + badgesHtml + '</span></td>';
     html += '<td style="padding: 12px 16px; text-align: center; color: var(--text-muted);">' + (u.exato||0) + '</td>';
     html += '<td style="padding: 12px 16px; text-align: center; color: var(--text-muted);">' + (u.vencedor||0) + '</td>';
     html += '<td style="padding: 12px 16px; text-align: right; color: var(--accent-gold); font-size: 1.1rem; font-weight: bold;">' + u.pts + ' PTS</td>';
@@ -1118,6 +1149,10 @@ els.tabs.forEach(function(tab) {
     if (typeof updateLiveTab === 'function') {
       updateLiveTab();
     }
+    
+    if (tab.getAttribute('data-target') === 'tab-perfil') {
+      if (typeof updateDashboardProfile === 'function') updateDashboardProfile();
+    }
   });
 });
 
@@ -1196,13 +1231,239 @@ let globalOfficialResults = {};
 let globalLiveConfig = {};
 let currentLiveMatchId = null;
 
+// =============================================
+// DASHBOARD DE ESTATÍSTICAS (Meu Perfil)
+// =============================================
+let profileChartPizza = null;
+let profileChartLinha = null;
+
+function updateDashboardProfile() {
+  if (!currentUser || !globalRanking || !globalOfficialResults) return;
+  
+  var myData = globalRanking.find(u => u.id === currentUser);
+  if (!myData) return;
+
+  var picks = myData.picks || {};
+  
+  // 1. Calcular Aproveitamento (Pizza)
+  var exatos = myData.exato || 0;
+  var vencedores = myData.vencedor || 0;
+  var erros = 0;
+  
+  // Para erros, precisamos contar quantos palpites têm resultado final
+  var jogosFinalizados = 0;
+  var timeSorte = {}; // pts ganhos por time
+  var timeAzar = {}; // pts perdidos por time
+  
+  // Evolução
+  var evolutionData = [];
+  var acmPoints = 0;
+
+  var sortedMatches = [...ALL_MATCHES].sort((a, b) => a.date - b.date);
+  
+  sortedMatches.forEach(function(m) {
+    var r = globalOfficialResults[m.id];
+    var p = picks[m.id];
+    if (r && r.status === 'finished' && p && p.home !== undefined) {
+      jogosFinalizados++;
+      
+      // Points calculation for this match
+      var pts = 0;
+      if (p.home === r.home && p.away === r.away) {
+        pts = 3;
+      } else if (
+        (p.home > p.away && r.home > r.away) ||
+        (p.home < p.away && r.home < r.away) ||
+        (p.home === p.away && r.home === r.away)
+      ) {
+        pts = 1;
+      }
+      
+      if (pts === 0) erros++;
+
+      acmPoints += pts;
+      evolutionData.push({
+        date: m.date,
+        label: m.home.code + 'x' + m.away.code,
+        pts: acmPoints
+      });
+
+      // Time sorte / azar
+      if (!timeSorte[m.home.code]) timeSorte[m.home.code] = 0;
+      if (!timeSorte[m.away.code]) timeSorte[m.away.code] = 0;
+      if (!timeAzar[m.home.code]) timeAzar[m.home.code] = 0;
+      if (!timeAzar[m.away.code]) timeAzar[m.away.code] = 0;
+
+      if (pts > 0) {
+        timeSorte[m.home.code] += pts;
+        timeSorte[m.away.code] += pts;
+      } else {
+        timeAzar[m.home.code] += 1;
+        timeAzar[m.away.code] += 1;
+      }
+    }
+  });
+
+  // Render Pizza
+  var ctxPizza = document.getElementById('chart-pizza-acertos');
+  if (ctxPizza) {
+    if (profileChartPizza) profileChartPizza.destroy();
+    profileChartPizza = new Chart(ctxPizza, {
+      type: 'doughnut',
+      data: {
+        labels: ['Placar Exato (+3)', 'Vencedor (+1)', 'Erros (+0)'],
+        datasets: [{
+          data: [exatos, vencedores, erros],
+          backgroundColor: ['#22c55e', '#3b82f6', '#ef4444'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: 'bottom', labels: { color: '#ccc' } }
+        }
+      }
+    });
+  }
+
+  // Render Linha (Evolução)
+  var ctxLinha = document.getElementById('chart-linha-evolucao');
+  if (ctxLinha && evolutionData.length > 0) {
+    if (profileChartLinha) profileChartLinha.destroy();
+    profileChartLinha = new Chart(ctxLinha, {
+      type: 'line',
+      data: {
+        labels: evolutionData.map((d, idx) => 'Jogo ' + (idx + 1)), // idx
+        datasets: [{
+          label: 'Pontos Acumulados',
+          data: evolutionData.map(d => d.pts),
+          borderColor: '#ffd700',
+          backgroundColor: 'rgba(255, 215, 0, 0.2)',
+          tension: 0.3,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          x: { ticks: { color: '#888' }, grid: { color: '#333' } },
+          y: { ticks: { color: '#888' }, grid: { color: '#333' }, beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  // Time da Sorte / Azar
+  function getTopTeam(dict) {
+    var maxVal = 0;
+    var maxTeam = null;
+    for (var k in dict) {
+      if (dict[k] > maxVal) { maxVal = dict[k]; maxTeam = k; }
+    }
+    return maxTeam;
+  }
+
+  var tSorte = getTopTeam(timeSorte);
+  var tAzar = getTopTeam(timeAzar);
+
+  function getTeamName(code) {
+    var t = Object.values(TEAM_MAP).find(x => x.code === code);
+    return t ? t.name : '--';
+  }
+
+  document.getElementById('stats-time-sorte').innerHTML = tSorte ? getTeamName(tSorte) : '--';
+  document.getElementById('stats-time-azar').innerHTML = tAzar ? getTeamName(tAzar) : '--';
+}
+
+// =============================================
+// 12. NOTIFICAÇÕES (Push)
+// =============================================
+function setupNotifications() {
+  if (!('Notification' in window)) return;
+  
+  if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+    Notification.requestPermission();
+  }
+
+  setInterval(function() {
+    if (Notification.permission !== 'granted') return;
+    
+    var agora = new Date();
+    ALL_MATCHES.forEach(function(m) {
+      var msDiff = m.date.getTime() - agora.getTime();
+      var minDiff = msDiff / 60000;
+      
+      // Jogo começa em ~15 minutos
+      if (minDiff > 14 && minDiff <= 15) {
+        // Verifica se já notificou pra evitar flood (usar localStorage)
+        var notifiedKey = 'notified_' + m.id;
+        if (!localStorage.getItem(notifiedKey)) {
+          localStorage.setItem(notifiedKey, 'true');
+          
+          var p = globalPicks[m.id];
+          var msg = p && p.home !== undefined
+            ? 'Seu palpite foi ' + p.home + ' x ' + p.away + '. Boa sorte!'
+            : 'Você ainda não palpitou neste jogo! Corra que dá tempo.';
+            
+          new Notification('Faltam 15 minutos para ' + m.home.name + ' x ' + m.away.name + '!', {
+            body: msg,
+            icon: 'https://flagcdn.com/w160/' + m.home.code + '.png'
+          });
+        }
+      }
+    });
+  }, 60000); // Check a cada 1 min
+}
+
+// =============================================
+// CHAVEAMENTO (MATA-MATA)
+// =============================================
+function renderBracket() {
+  var container = document.getElementById('bracket-container');
+  if (!container) return;
+
+  var rounds = [
+    { name: '16-Avos', matches: 16 },
+    { name: 'Oitavas', matches: 8 },
+    { name: 'Quartas', matches: 4 },
+    { name: 'Semis', matches: 2 },
+    { name: 'Final', matches: 1 }
+  ];
+
+  var html = '';
+  rounds.forEach(function(r) {
+    html += '<div class="bracket-column">';
+    html += '<h3 style="text-align:center; color: var(--accent-gold); margin-bottom: 20px;">' + r.name + '</h3>';
+    for (var i = 0; i < r.matches; i++) {
+      html += '<div class="bracket-match">';
+      html += '<div style="display:flex; justify-content:space-between; margin-bottom:4px; padding-bottom:4px; border-bottom:1px solid #333;">';
+      html += '<span style="color:#aaa;">TBD</span><span style="font-weight:bold;">-</span>';
+      html += '</div>';
+      html += '<div style="display:flex; justify-content:space-between;">';
+      html += '<span style="color:#aaa;">TBD</span><span style="font-weight:bold;">-</span>';
+      html += '</div>';
+      html += '</div>';
+    }
+    html += '</div>';
+  });
+
+  container.innerHTML = html;
+}
+
 // PONTO DE ENTRADA
 function initApp() {
   populateBonusSelects();
   renderMatches();
   renderGroups();
+  renderBracket();
   loadUserData();
   setupAutoSave();
+  setupNotifications();
   
   // Header status com update a cada segundo
   updateHeaderStatus();
