@@ -327,6 +327,17 @@ const dbAPI = {
     }
   },
 
+  deleteResult: async (matchId) => {
+    let local = JSON.parse(localStorage.getItem('official_results') || '{}');
+    delete local[matchId];
+    localStorage.setItem('official_results', JSON.stringify(local));
+    if (db && typeof firebase !== 'undefined') {
+      const updateObj = {};
+      updateObj[matchId] = firebase.firestore.FieldValue.delete();
+      await db.collection('meta').doc('results').update(updateObj).catch(e => console.log(e));
+    }
+  },
+
   getResults: async () => {
     if (!db) return JSON.parse(localStorage.getItem('official_results') || '{}');
     try {

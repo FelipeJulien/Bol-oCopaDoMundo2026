@@ -176,6 +176,7 @@ function renderJogos() {
         </div>
         <div class="admin-game-actions" style="display:flex; flex-direction:column; gap:8px;">
           <button class="btn-admin primary" onclick="salvarResultado('${match.id}')">Salvar Resultado</button>
+          <button class="btn-admin secondary" style="background:#444;" onclick="zerarResultado('${match.id}')">Zerar Placar</button>
           <button class="btn-admin danger" onclick="cancelarJogo('${match.id}')">Cancelar Jogo</button>
         </div>
       </div>
@@ -199,6 +200,14 @@ window.salvarResultado = async function(matchId) {
   await dbAPI.saveResult(resultsObj);
   logAction('Salvar Resultado', `Jogo ${matchId}: ${hVal}x${aVal}`, 'Sem resultado oficial');
   showAdminToast("Placar oficial salvo! Ranking recalculado.");
+};
+
+window.zerarResultado = async function(matchId) {
+  if (!confirm("Tem certeza que deseja zerar o placar deste jogo? Ele voltará a ficar sem resultado e pontos distribuídos serão removidos.")) return;
+  
+  await dbAPI.deleteResult(matchId);
+  logAction('Zerar Resultado', `Jogo ${matchId} teve placar removido`, '');
+  showAdminToast("Placar removido com sucesso! Ranking recalculado.");
 };
 
 window.cancelarJogo = async function(matchId) {
