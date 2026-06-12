@@ -173,7 +173,7 @@ function renderGroups() {
   GROUPS.forEach(function(group) {
     var teamObjects = group.teams.map(function(tKey) { return TEAM_MAP[tKey]; });
     // Obter resultados oficiais
-    var results = JSON.parse(localStorage.getItem('official_results') || '{}');
+    var results = globalOfficialResults || JSON.parse(localStorage.getItem('official_results') || '{}');
 
     // Calcular classificação
     var standings = {};
@@ -1064,8 +1064,11 @@ function initApp() {
   dbAPI.listenToUpdates(async function(ranking, officialResults) {
     globalRanking = ranking;
     globalOfficialResults = officialResults;
+    // Sync official results to localStorage for other reads
+    localStorage.setItem('official_results', JSON.stringify(officialResults));
     renderSidebarRanking(ranking);
     renderComparativo(ranking, officialResults);
+    renderGroups();
     if (currentUser) {
       var data = await dbAPI.getUserData(currentUser);
       
