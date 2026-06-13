@@ -18,6 +18,17 @@
 </head>
 <body>
 
+  <!-- Goal Notification Container -->
+  <div id="goal-notification-container" class="goal-notification hidden">
+    <div class="goal-content">
+      <div class="goal-icon">⚽</div>
+      <div class="goal-text">
+        <h2 id="goal-title">GOOOL DO BRASIL!</h2>
+        <p id="goal-subtitle">Brasil 1 x 0 Sérvia</p>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL DE LOGIN (OFICIAL WORLD CUP 26) -->
   <div id="login-modal" class="modal-overlay hidden modal-responsive" style="background: #05080f; overflow: hidden;">
     
@@ -266,6 +277,19 @@
           <h2 class="section-title">Meu Perfil e Estatísticas</h2>
           <p class="section-desc">Seu desempenho no bolão em gráficos e números.</p>
           
+          <!-- Configuração de Apelido -->
+          <div class="stats-card" style="margin-top: 24px; padding: 24px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-subtle);">
+            <h3 style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase;">Configurações de Conta</h3>
+            <div style="display: flex; gap: 16px; align-items: center; margin-top: 12px; flex-wrap: wrap;">
+              <div style="flex: 1; min-width: 200px;">
+                <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 4px;">Seu Apelido (Nome de Exibição)</label>
+                <input type="text" id="input-nickname" class="modal-input" placeholder="Como quer ser chamado?" maxlength="15">
+              </div>
+              <button class="btn-primary" id="btn-save-nickname" style="margin-top: 20px;">Salvar Apelido</button>
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 8px;">O seu ID de login original (<span id="profile-original-id" style="font-weight:bold; color:var(--text-primary);"></span>) não será alterado e continuará sendo usado para entrar no site.</p>
+          </div>
+
           <!-- Contadores Animados -->
           <div style="display: flex; gap: 24px; margin-top: 24px; flex-wrap: wrap;">
             <div class="stats-card" style="flex: 1; min-width: 150px; background: var(--bg-card); padding: 24px; border-radius: 12px; border: 1px solid var(--border-subtle); text-align: center;">

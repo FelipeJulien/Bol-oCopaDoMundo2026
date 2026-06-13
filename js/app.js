@@ -799,7 +799,7 @@ function renderSidebarRanking(ranking) {
     var isMeClass = u.id === currentUser ? ' me' : '';
     html += '<div class="ranking-item rank-item-clickable' + isMeClass + '" data-id="' + u.id + '">';
     html += '<div class="rank-pos">' + (idx + 1) + 'º</div>';
-    html += renderAvatar(u.avatar, u.name);
+    html += renderAvatar(u.avatar, (u.nickname || u.name));
     
     // Render Badges
     var badgesHtml = '';
@@ -807,7 +807,7 @@ function renderSidebarRanking(ranking) {
       badgesHtml = '<span style="margin-left: 6px; font-size: 0.9rem;" title="' + u.badges.map(b => b.title).join(', ') + '">' + u.badges.map(b => b.icon).join('') + '</span>';
     }
 
-    html += '<div class="rank-name">' + u.name + badgesHtml + '</div>';
+    html += '<div class="rank-name">' + (u.nickname || u.name) + badgesHtml + '</div>';
     html += '<div class="rank-pts">' + u.pts + ' pts</div>';
     html += '</div>';
   });
@@ -818,8 +818,8 @@ function renderSidebarRanking(ranking) {
       html += '<div style="text-align:center; color:var(--border-subtle); margin: 6px 0; font-size: 12px;">···</div>';
       html += '<div class="ranking-item rank-item-clickable me" data-id="' + me.id + '">';
       html += '<div class="rank-pos">' + (myRankIdx + 1) + 'º</div>';
-      html += renderAvatar(me.avatar, me.name);
-      html += '<div class="rank-name">' + me.name + '</div>';
+      html += renderAvatar(me.avatar, (me.nickname || me.name));
+      html += '<div class="rank-name">' + (me.nickname || me.name) + '</div>';
       html += '<div class="rank-pts">' + me.pts + ' pts</div>';
       html += '</div>';
     }
@@ -849,10 +849,10 @@ function openUserProfile(userId) {
   if (user.avatar) {
     avatarHtml = '<img src="https://flagcdn.com/h60/' + user.avatar + '.png" class="profile-avatar">';
   } else {
-    avatarHtml = '<div class="profile-avatar-placeholder">' + user.name.charAt(0).toUpperCase() + '</div>';
+    avatarHtml = '<div class="profile-avatar-placeholder">' + (user.nickname || user.name).charAt(0).toUpperCase() + '</div>';
   }
   var pos = globalRanking.findIndex(u => u.id === userId) + 1;
-  header.innerHTML = avatarHtml + '<div class="profile-info"><h3>' + user.name + '</h3><p>' + pos + 'º lugar · ' + user.pts + ' pontos</p></div>';
+  header.innerHTML = avatarHtml + '<div class="profile-info"><h3>' + (user.nickname || user.name) + '</h3><p>' + pos + 'º lugar · ' + user.pts + ' pontos</p></div>';
 
   // Lista de Palpites e contagem
   var listHtml = '';
@@ -946,7 +946,7 @@ function initDueloSelects() {
   if (selA.options.length === 0) {
     let opts = '';
     globalRanking.forEach(u => {
-      opts += `<option value="${u.id}">${u.name}</option>`;
+      opts += `<option value="${u.id}">${(u.nickname || u.name)}</option>`;
     });
     selA.innerHTML = opts;
     selB.innerHTML = opts;
@@ -995,11 +995,11 @@ window.renderDuelo = function() {
     <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:40px;">
       <div style="text-align:center;">
         ${avatarA}
-        <div style="font-size:1.5rem; font-weight:bold; color:var(--text-primary); margin-top:10px;">${userA.name}</div>
+        <div style="font-size:1.5rem; font-weight:bold; color:var(--text-primary); margin-top:10px;">${(userA.nickname || userA.name)}</div>
       </div>
       <div style="text-align:center;">
         ${avatarB}
-        <div style="font-size:1.5rem; font-weight:bold; color:var(--text-primary); margin-top:10px;">${userB.name}</div>
+        <div style="font-size:1.5rem; font-weight:bold; color:var(--text-primary); margin-top:10px;">${(userB.nickname || userB.name)}</div>
       </div>
     </div>
     
@@ -1251,7 +1251,7 @@ function renderFullRanking() {
       badgesHtml = '<span style="margin-left: 8px; font-size: 1.1rem; cursor: help;" title="' + u.badges.map(b => b.title).join(', ') + '">' + u.badges.map(b => b.icon).join(' ') + '</span>';
     }
 
-    html += '<span>' + (u.name || 'Anônimo') + (isMe ? ' (Você)' : '') + badgesHtml + '</span></td>';
+    html += '<span>' + ((u.nickname || u.name) || 'Anônimo') + (isMe ? ' (Você)' : '') + badgesHtml + '</span></td>';
     html += '<td style="padding: 12px 16px; text-align: center; color: var(--text-muted);">' + (u.exato||0) + '</td>';
     html += '<td style="padding: 12px 16px; text-align: center; color: var(--text-muted);">' + (u.vencedor||0) + '</td>';
     html += '<td style="padding: 12px 16px; text-align: right; color: var(--accent-gold); font-size: 1.1rem; font-weight: bold;">' + u.pts + ' PTS</td>';
@@ -1482,6 +1482,12 @@ function updateDashboardProfile() {
 
   var picks = myData.picks || {};
   
+  // 0. Atualizar campos de Apelido
+  const inputNickname = document.getElementById('input-nickname');
+  const spanOriginalId = document.getElementById('profile-original-id');
+  if (inputNickname) inputNickname.value = myData.nickname || '';
+  if (spanOriginalId) spanOriginalId.innerText = myData.name;
+  
   // 1. Calcular Aproveitamento (Pizza)
   var exatos = myData.exato || 0;
   var vencedores = myData.vencedor || 0;
@@ -1677,7 +1683,7 @@ async function exportPicksToImage() {
   container.style.left = '0';
   container.style.zIndex = '-100'; // kept hidden behind
   
-  let html = `<h2 style="text-align:center; color:var(--accent-gold); margin-bottom:20px;">Palpites de ${myData.name}</h2>`;
+  let html = `<h2 style="text-align:center; color:var(--accent-gold); margin-bottom:20px;">Palpites de ${(myData.nickname || myData.name)}</h2>`;
   html += `<div style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center;">`;
   
   ALL_MATCHES.forEach(m => {
@@ -2001,7 +2007,7 @@ function initApp() {
       
       // Fallback seguro: se DB não retornou nome, usa do localStorage
       var authName = localStorage.getItem('auth_name');
-      currentUserName = data.name || authName || 'Anônimo';
+      currentUserName = (data.nickname || data.name) || authName || 'Anônimo';
       globalPicks = data.picks || {};
       
       document.getElementById('display-user-name').innerText = currentUserName;
@@ -2023,3 +2029,71 @@ function initApp() {
     }
   });
 }
+
+// GOAL NOTIFICATION LISTENER
+window.addEventListener('goalScored', function(e) {
+  var matchId = e.detail.matchId;
+  var team = e.detail.team;
+  var homeScore = e.detail.homeScore;
+  var awayScore = e.detail.awayScore;
+  
+  // We need to look up the team names from worldcup.json if possible
+  // In app.js we have the global \matches\ array.
+  var match = window.matches ? window.matches.find(m => m.id === matchId) : null;
+  
+  var title = 'GOOOL!';
+  var subtitle = matchId + ': ' + homeScore + ' x ' + awayScore;
+  
+  if (match) {
+    var teamName = team === 'home' ? match.home.name : match.away.name;
+    title = 'GOOOL DA ' + teamName.toUpperCase() + '!';
+    subtitle = match.home.name + ' ' + homeScore + ' x ' + awayScore + ' ' + match.away.name;
+  }
+  
+  var container = document.getElementById('goal-notification-container');
+  var titleEl = document.getElementById('goal-title');
+  var subtitleEl = document.getElementById('goal-subtitle');
+  
+  if (container && titleEl && subtitleEl) {
+    titleEl.innerText = title;
+    subtitleEl.innerText = subtitle;
+    
+    container.classList.remove('hidden');
+    
+    // Hide after 5 seconds
+    setTimeout(function() {
+      container.classList.add('hidden');
+    }, 5000);
+  }
+});
+
+// EVENTO DE SALVAR APELIDO
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(function() {
+    var btnSaveNickname = document.getElementById('btn-save-nickname');
+    if (btnSaveNickname) {
+      btnSaveNickname.addEventListener('click', async function() {
+        var newNick = document.getElementById('input-nickname').value.trim();
+        if (newNick.length > 15) {
+          alert('O apelido deve ter no m�ximo 15 caracteres.');
+          return;
+        }
+        
+        btnSaveNickname.innerText = 'Salvando...';
+        btnSaveNickname.disabled = true;
+        
+        try {
+          await dbAPI.saveNickname(currentUser, newNick);
+          // O snapshot de usuarios vai atualizar o globalRanking automaticamente
+          alert('Apelido atualizado com sucesso!');
+        } catch(e) {
+          console.error(e);
+          alert('Erro ao salvar apelido.');
+        } finally {
+          btnSaveNickname.innerText = 'Salvar Apelido';
+          btnSaveNickname.disabled = false;
+        }
+      });
+    }
+  }, 1000);
+});

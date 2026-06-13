@@ -269,6 +269,19 @@ const dbAPI = {
     }
   },
 
+  saveNickname: async (userId, nickname) => {
+    let localData = JSON.parse(localStorage.getItem('user_' + userId) || '{"picks":{}, "bonus":{}}');
+    localData.nickname = nickname;
+    localStorage.setItem('user_' + userId, JSON.stringify(localData));
+
+    if (db) {
+      await db.collection('users').doc(userId).set({
+        nickname: nickname,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, {merge: true});
+    }
+  },
+
   saveManualBadge: async (userId, badgeId) => {
     let localData = JSON.parse(localStorage.getItem('user_' + userId) || '{"picks":{}, "bonus":{}}');
     if (!localData.manualBadges) localData.manualBadges = [];
@@ -412,8 +425,30 @@ const dbAPI = {
 
   listenToUpdates: (callback) => {
     if (!db) return;
+    let previousResultsCache = null;
     db.collection('meta').doc('results').onSnapshot(function(snap) {
       const results = snap.exists ? snap.data() : {};
+      
+      // Detecção de Gols
+      if (previousResultsCache !== null) {
+        for (let mId in results) {
+          const curr = results[mId];
+          const prev = previousResultsCache[mId];
+          if (curr && curr.home !== undefined && !curr.canceled) {
+            const prevHome = prev && prev.home !== undefined ? prev.home : 0;
+            const prevAway = prev && prev.away !== undefined ? prev.away : 0;
+            
+            if (curr.home > prevHome) {
+               window.dispatchEvent(new CustomEvent('goalScored', { detail: { matchId: mId, team: 'home', homeScore: curr.home, awayScore: curr.away } }));
+            }
+            if (curr.away > prevAway) {
+               window.dispatchEvent(new CustomEvent('goalScored', { detail: { matchId: mId, team: 'away', homeScore: curr.home, awayScore: curr.away } }));
+            }
+          }
+        }
+      }
+      previousResultsCache = JSON.parse(JSON.stringify(results));
+
       db.collection('users').get().then(async function(usersSnap) {
           const usersPicksMap = {};
           const allPicksByMatch = {};

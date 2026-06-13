@@ -286,7 +286,7 @@ function renderRanking() {
     html += `
       <tr>
         <td>${idx + 1}º</td>
-        <td><strong>${user.name}</strong><br><small style="color:var(--admin-muted)">ID: ${user.id}</small></td>
+        <td><strong>${(user.nickname || user.name)}</strong><br><small style="color:var(--admin-muted)">ID: ${user.id}</small></td>
         <td style="color: var(--admin-primary); font-weight: bold; font-size: 1.1rem;">${user.pts} pts</td>
         <td><span style="background:var(--admin-success); color:white; padding:2px 6px; border-radius:4px; font-size:10px;">${user.exato} 🎯</span> &nbsp; <span style="background:#3b82f6; color:white; padding:2px 6px; border-radius:4px; font-size:10px;">${user.vencedor} ✓</span></td>
       </tr>
@@ -308,18 +308,18 @@ function renderUsuarios() {
     let curingasDisp = 2 - (user.curingasUsados || 0);
     html += `
       <tr>
-        <td><strong>${user.name}</strong><br><small style="color:var(--admin-muted)">ID: ${user.id}</small></td>
+        <td><strong>${(user.nickname || user.name)}</strong><br><small style="color:var(--admin-muted)">ID: ${user.id}</small></td>
         <td>${user.pts}</td>
         <td>${user.exato}</td>
         <td>${user.vencedor}</td>
         <td><strong>${curingasDisp}</strong> disp.</td>
         <td>
           <button class="btn-admin" onclick="filtrarApostasUsuario('${user.id}')" style="margin-right:8px; margin-bottom:4px;">Ver Apostas</button>
-          <button class="btn-admin secondary" onclick="definirPontos('${user.id}', '${user.name}', ${user.pontos_ajuste})" style="margin-right:8px; margin-bottom:4px; background:var(--admin-success); color:white; border:none;">Definir Pontos</button>
+          <button class="btn-admin secondary" onclick="definirPontos('${user.id}', '${(user.nickname || user.name)}', ${user.pontos_ajuste})" style="margin-right:8px; margin-bottom:4px; background:var(--admin-success); color:white; border:none;">Definir Pontos</button>
           <button class="btn-admin" onclick="resetarCuringa('${user.id}')" style="margin-right:8px; margin-bottom:4px; background:#eab308; color:black; border:none;">Resetar Curinga</button>
-          <button class="btn-admin" onclick="darTrofeuManual('${user.id}', '${user.name}')" style="margin-right:8px; margin-bottom:4px; background:#8a2be2; color:white; border:none;">Dar Troféu 🏆</button>
+          <button class="btn-admin" onclick="darTrofeuManual('${user.id}', '${(user.nickname || user.name)}')" style="margin-right:8px; margin-bottom:4px; background:#8a2be2; color:white; border:none;">Dar Troféu 🏆</button>
           <button class="btn-admin secondary" onclick="zerarUsuario('${user.id}')" style="margin-right:8px; margin-bottom:4px;">Zerar Pontuação</button>
-          <button class="btn-admin danger" onclick="excluirUsuario('${user.id}', '${user.name}')" style="margin-bottom:4px;">Excluir Conta</button>
+          <button class="btn-admin danger" onclick="excluirUsuario('${user.id}', '${(user.nickname || user.name)}')" style="margin-bottom:4px;">Excluir Conta</button>
         </td>
       </tr>
     `;
@@ -445,7 +445,7 @@ document.getElementById('btn-export-csv').addEventListener('click', () => {
   let csvContent = "data:text/csv;charset=utf-8,";
   csvContent += "Posicao,Nome,ID,Pontos,Placares_Exatos,Vencedores_Acertados\n";
   allUsersCache.forEach((user, idx) => {
-    csvContent += `${idx+1},${user.name},${user.id},${user.pts},${user.exato},${user.vencedor}\n`;
+    csvContent += `${idx+1},${(user.nickname || user.name)},${user.id},${user.pts},${user.exato},${user.vencedor}\n`;
   });
   
   const encodedUri = encodeURI(csvContent);
@@ -567,7 +567,7 @@ filterUser.addEventListener('keyup', (e) => {
 window.filtrarApostasUsuario = function(userId) {
   const user = allUsersCache.find(u => u.id === userId);
   if (user) {
-    filterUser.value = user.name;
+    filterUser.value = (user.nickname || user.name);
     document.querySelector('.menu-btn[data-target="sec-apostas"]').click();
   }
 };
@@ -651,3 +651,37 @@ document.getElementById('btn-add-bet').addEventListener('click', () => {
 
 // INITIALIZE
 checkAuth();
+
+// GOAL NOTIFICATION LISTENER
+window.addEventListener('goalScored', function(e) {
+  var matchId = e.detail.matchId;
+  var team = e.detail.team;
+  var homeScore = e.detail.homeScore;
+  var awayScore = e.detail.awayScore;
+  
+  var match = window.allMatchesCache ? window.allMatchesCache.find(m => m.id === matchId) : null;
+  
+  var title = 'GOOOL!';
+  var subtitle = matchId + ': ' + homeScore + ' x ' + awayScore;
+  
+  if (match) {
+    var teamName = team === 'home' ? match.home.name : match.away.name;
+    title = 'GOOOL DA ' + teamName.toUpperCase() + '!';
+    subtitle = match.home.name + ' ' + homeScore + ' x ' + awayScore + ' ' + match.away.name;
+  }
+  
+  var container = document.getElementById('goal-notification-container');
+  var titleEl = document.getElementById('goal-title');
+  var subtitleEl = document.getElementById('goal-subtitle');
+  
+  if (container && titleEl && subtitleEl) {
+    titleEl.innerText = title;
+    subtitleEl.innerText = subtitle;
+    
+    container.classList.remove('hidden');
+    
+    setTimeout(function() {
+      container.classList.add('hidden');
+    }, 5000);
+  }
+});
