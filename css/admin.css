@@ -4,12 +4,12 @@
 
 :root {
   --admin-bg: #0d0d0d;
-  --admin-header: #7f1d1d;
-  --admin-card: #1a1a1a;
-  --admin-card-hover: #222222;
-  --admin-border: #333333;
+  --admin-header: rgba(127, 29, 29, 0.6);
+  --admin-card: rgba(26, 26, 26, 0.4);
+  --admin-card-hover: rgba(34, 34, 34, 0.6);
+  --admin-border: rgba(255, 255, 255, 0.1);
   --admin-text: #f5f5f5;
-  --admin-muted: #888888;
+  --admin-muted: #aaaaaa;
   --admin-primary: #ef4444; /* red accent */
   --admin-success: #22c55e;
   --admin-warning: #f59e0b;
@@ -17,6 +17,10 @@
 
 body {
   background-color: var(--admin-bg);
+  background-image: url('../assets/admin_bg.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
   color: var(--admin-text);
   font-family: 'Inter', sans-serif;
   margin: 0;
@@ -41,6 +45,7 @@ h1, h2, h3, .condensed {
   justify-content: space-between;
   padding: 0 24px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+  backdrop-filter: blur(16px);
   z-index: 100;
 }
 .admin-top-bar h1 {
@@ -72,7 +77,8 @@ h1, h2, h3, .condensed {
 
 .admin-sidebar {
   width: 250px;
-  background-color: #111111;
+  background-color: rgba(10, 10, 10, 0.5);
+  backdrop-filter: blur(16px);
   border-right: 1px solid var(--admin-border);
   display: flex;
   flex-direction: column;
@@ -138,6 +144,7 @@ h1, h2, h3, .condensed {
   width: 100%;
   border-collapse: collapse;
   background: var(--admin-card);
+  backdrop-filter: blur(16px);
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 4px 6px rgba(0,0,0,0.3);
@@ -149,7 +156,7 @@ h1, h2, h3, .condensed {
   border-bottom: 1px solid var(--admin-border);
 }
 .data-table th {
-  background: #111;
+  background: rgba(10, 10, 10, 0.6);
   color: var(--admin-muted);
   font-weight: 600;
   text-transform: uppercase;
@@ -205,10 +212,11 @@ h1, h2, h3, .condensed {
 .modal-overlay.hidden { display: none; }
 .modal-content {
   background: var(--admin-card);
+  backdrop-filter: blur(16px);
   padding: 40px;
   border-radius: 8px;
   width: 100%; max-width: 400px;
-  border-top: 4px solid var(--admin-header);
+  border-top: 4px solid var(--admin-primary);
   text-align: center;
 }
 .modal-input {
@@ -229,6 +237,7 @@ h1, h2, h3, .condensed {
 /* JOGOS CARDS */
 .admin-game-card {
   background: var(--admin-card);
+  backdrop-filter: blur(16px);
   border: 1px solid var(--admin-border);
   padding: 16px;
   border-radius: 8px;

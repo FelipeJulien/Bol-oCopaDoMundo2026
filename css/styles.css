@@ -2084,3 +2084,155 @@ h1, h2, h3, h4, .condensed {
   50% { transform: translateY(-8px) scale(1.05); }
   100% { transform: translateY(0px) scale(1); }
 }
+
+/* =============================================
+   SALA DE TROFÉUS - ESTILO VIDEOGAME
+   ============================================= */
+
+.trophy-item {
+  width: 100%;
+  min-height: 160px;
+  background: #1a1a2e;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 20px 16px;
+  text-align: center;
+  transition: all 0.3s ease;
+  position: relative;
+  border: 2px solid transparent;
+}
+
+.trophy-item .badge-icon {
+  font-size: 3rem;
+  margin-bottom: 8px;
+  transition: all 0.3s ease;
+  z-index: 2;
+}
+
+.trophy-item .badge-title {
+  font-weight: bold;
+  font-size: 14px;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  z-index: 2;
+}
+
+.trophy-item .badge-desc {
+  font-size: 12px;
+  color: #cccccc;
+  line-height: 1.3;
+  z-index: 2;
+}
+
+/* Estado bloqueado */
+.trophy-locked {
+  filter: grayscale(100%);
+  opacity: 0.4;
+  border-color: #2a2a3e;
+}
+
+/* Estado desbloqueado (Geral animado) */
+.trophy-unlocked {
+  filter: none;
+  opacity: 1;
+  animation: floatTrophy 3s ease-in-out infinite;
+}
+
+/* Tema: Zebra */
+.trophy-unlocked[data-id="zebra"] {
+  border: 2px dashed #ffffff;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+/* Tema: Seguidor (Maria vai com as outras) */
+.trophy-unlocked[data-id="maria"] {
+  border-color: #4169E1;
+  box-shadow: 0 0 15px rgba(65, 105, 225, 0.5);
+}
+
+/* Tema: Mãe Dináh */
+.trophy-unlocked[data-id="mae_dinah"] {
+  border-color: #8A2BE2;
+  box-shadow: 0 0 15px rgba(138, 43, 226, 0.6);
+  animation: floatTrophy 3s ease-in-out infinite, pulseDinah 2s infinite alternate;
+}
+@keyframes pulseDinah {
+  0% { box-shadow: 0 0 10px rgba(138, 43, 226, 0.4); }
+  100% { box-shadow: 0 0 25px rgba(138, 43, 226, 0.8); }
+}
+
+/* Tema: Pé Frio */
+.trophy-unlocked[data-id="pe_frio"] {
+  border-color: #00FFFF;
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+  background: linear-gradient(180deg, #1a1a2e 0%, rgba(0, 255, 255, 0.1) 100%);
+}
+
+/* Tema: Empate */
+.trophy-unlocked[data-id="empate"] {
+  border: 2px solid transparent;
+  background-image: linear-gradient(#1a1a2e, #1a1a2e), linear-gradient(90deg, #FFD700 50%, #888888 50%);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+
+/* Tema: Zero a Zero */
+.trophy-unlocked[data-id="zero_zero"] {
+  border: 2px dotted #aaaaaa;
+  box-shadow: none;
+}
+
+/* Tema: Goleada */
+.trophy-unlocked[data-id="goleada"] {
+  border-color: #FF4500;
+  box-shadow: 0 0 20px rgba(255, 69, 0, 0.6);
+  background: linear-gradient(180deg, #1a1a2e 0%, rgba(255, 69, 0, 0.15) 100%);
+}
+
+/* Tema: Curinga Exato */
+.trophy-unlocked[data-id="curinga_exato"] {
+  border-color: #FFD700;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.7);
+  position: relative;
+  overflow: hidden;
+}
+.trophy-unlocked[data-id="curinga_exato"]::before {
+  content: '';
+  position: absolute;
+  top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(255,215,0,0.2), transparent);
+  transform: rotate(45deg);
+  animation: shimmerCuringa 2s infinite;
+  z-index: 1;
+}
+@keyframes shimmerCuringa {
+  0% { transform: translateX(-100%) rotate(45deg); }
+  100% { transform: translateX(100%) rotate(45deg); }
+}
+
+/* Tema: Atirador */
+.trophy-unlocked[data-id="atirador"] {
+  border: 2px solid transparent;
+  background-image: linear-gradient(#1a1a2e, #1a1a2e), 
+      linear-gradient(45deg, transparent 40%, red 40%, red 60%, transparent 60%),
+      linear-gradient(-45deg, transparent 40%, red 40%, red 60%, transparent 60%);
+  background-position: 0 0, 0 0;
+  background-size: auto, 10px 10px, 10px 10px;
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  box-shadow: inset 0 0 10px rgba(255,0,0,0.3), 0 0 10px rgba(255,0,0,0.5);
+}
+
+/* Tema: Patriota */
+.trophy-unlocked[data-id="patriota"] {
+  border: 2px solid transparent;
+  background-image: linear-gradient(#1a1a2e, #1a1a2e), linear-gradient(135deg, #009b3a 33%, #fedf00 33%, #fedf00 66%, #002776 66%);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  box-shadow: 0 0 15px rgba(254, 223, 0, 0.4);
+}

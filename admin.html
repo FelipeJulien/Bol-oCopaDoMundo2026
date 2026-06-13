@@ -99,11 +99,12 @@
                 <th>Total Pts</th>
                 <th>🎯 Exatos</th>
                 <th>✓ Vencedores</th>
+                <th>⭐ Curingas Disp.</th>
                 <th>Ações</th>
               </tr>
             </thead>
             <tbody id="admin-usuarios-tbody">
-              <tr><td colspan="5">Carregando usuários...</td></tr>
+              <tr><td colspan="6">Carregando usuários...</td></tr>
             </tbody>
           </table>
         </section>
@@ -171,6 +172,37 @@
       <div style="display:flex; justify-content:space-between; margin-top:24px;">
         <button class="btn-admin danger" id="btn-cancel-edit">Cancelar</button>
         <button class="btn-admin primary" id="btn-save-edit">Salvar Aposta</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DAR TROFÉU -->
+  <div id="modal-dar-trofeu" class="modal-overlay hidden">
+    <div class="modal-content modal-inner" style="max-width: 400px;">
+      <h3 style="margin-top:0; color:var(--admin-primary);">Dar Troféu 🏆</h3>
+      <p style="color: var(--admin-muted); font-size: 0.9rem; margin-bottom: 16px;">Selecione qual troféu você quer dar para <strong id="dar-trofeu-username" style="color:white;"></strong>.</p>
+      
+      <input type="hidden" id="dar-trofeu-userid">
+      
+      <div class="form-group">
+        <label>Selecione o Troféu</label>
+        <select id="dar-trofeu-select" class="modal-input" style="width: 100%;">
+          <option value="zebra">🦓 Zebra</option>
+          <option value="maria">🛡️ Maria Vai Com as Outras</option>
+          <option value="mae_dinah">🔮 Mãe Dináh</option>
+          <option value="pe_frio">🥶 Pé Frio</option>
+          <option value="empate">🤝 Mestre do Empate</option>
+          <option value="zero_zero">🍩 O Famoso 0x0</option>
+          <option value="goleada">💥 Goleada Mágica</option>
+          <option value="curinga_exato">🌟 Milagre do Curinga</option>
+          <option value="atirador">🎯 Atirador de Elite</option>
+          <option value="patriota">🏴 Patriota</option>
+        </select>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; margin-top:24px;">
+        <button class="btn-admin danger" id="btn-cancel-trofeu">Cancelar</button>
+        <button class="btn-admin primary" id="btn-save-trofeu" style="background:#8a2be2;">Conceder Troféu</button>
       </div>
     </div>
   </div>

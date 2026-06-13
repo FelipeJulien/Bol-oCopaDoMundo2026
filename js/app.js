@@ -783,7 +783,7 @@ function renderSidebarRanking(ranking) {
   }
   
   var html = '';
-  var top5 = ranking.slice(0, 5);
+  var top10 = ranking.slice(0, 10);
   var isMeInTop = false;
 
   function renderAvatar(avatarCode, name) {
@@ -794,7 +794,7 @@ function renderSidebarRanking(ranking) {
     }
   }
 
-  top5.forEach(function(u, idx) {
+  top10.forEach(function(u, idx) {
     if (u.id === currentUser) isMeInTop = true;
     var isMeClass = u.id === currentUser ? ' me' : '';
     html += '<div class="ranking-item rank-item-clickable' + isMeClass + '" data-id="' + u.id + '">';
@@ -1422,7 +1422,51 @@ let globalPicks = {};
 let globalRanking = [];
 let globalOfficialResults = {};
 let globalLiveConfig = {};
+let globalAllPicksByMatch = {};
 let currentLiveMatchId = null;
+
+const ALL_POSSIBLE_BADGES = [
+  { id: 'zebra', icon: '🦓', title: 'Zebra', desc: 'Acertou um placar com menos de 20% das apostas' },
+  { id: 'maria', icon: '🛡️', title: 'Seguidor', desc: 'Acertou placar com mais de 80% das apostas' },
+  { id: 'mae_dinah', icon: '🔮', title: 'Mãe Dináh', desc: 'Acertou 3 placares exatos seguidos' },
+  { id: 'pe_frio', icon: '🥶', title: 'Pé Frio', desc: 'Errou 5 palpites seguidos' },
+  { id: 'empate', icon: '🤝', title: 'Empate', desc: 'Acertou 3 empates exatos' },
+  { id: 'zero_zero', icon: '🍩', title: 'Zero a Zero', desc: 'Cravou um placar de 0x0' },
+  { id: 'goleada', icon: '💥', title: 'Goleada', desc: 'Placar exato em jogo com 4 gols ou mais' },
+  { id: 'curinga_exato', icon: '🌟', title: 'Curinga', desc: 'Placar exato usando Curinga 2x' },
+  { id: 'atirador', icon: '🎯', title: 'Atirador', desc: 'Acertou o vencedor de 10 jogos' },
+  { id: 'patriota', icon: '🏴', title: 'Patriota', desc: 'Cravou o placar da sua seleção' }
+];
+
+function renderSalaTrofeus(myData) {
+  const container = document.getElementById('sala-trofeus-container');
+  if (!container) return;
+  container.innerHTML = '';
+  
+  let userBadgeIds = myData && myData.badges ? myData.badges.map(b => b.id) : [];
+  
+  ALL_POSSIBLE_BADGES.forEach(b => {
+    const isEarned = userBadgeIds.includes(b.id);
+    const item = document.createElement('div');
+    item.className = 'trophy-item ' + (isEarned ? 'trophy-unlocked' : 'trophy-locked');
+    item.setAttribute('data-id', b.id);
+    item.innerHTML = `
+      <div class="badge-icon">${b.icon}</div>
+      <div class="badge-title">${b.title}</div>
+      <div class="badge-desc">${b.desc}</div>
+    `;
+    container.appendChild(item);
+  });
+
+  const progressText = document.getElementById('trophy-progress-text');
+  const progressFill = document.getElementById('trophy-progress-fill');
+  if (progressText && progressFill) {
+    const earnedCount = userBadgeIds.length;
+    const totalCount = ALL_POSSIBLE_BADGES.length;
+    progressText.innerText = `${earnedCount}/${totalCount} conquistas desbloqueadas`;
+    progressFill.style.width = `${(earnedCount / totalCount) * 100}%`;
+  }
+}
 
 // =============================================
 // DASHBOARD DE ESTATÍSTICAS (Meu Perfil)
@@ -1585,27 +1629,13 @@ function updateDashboardProfile() {
     animateValue(dashPosEl, 100, pos, 1500); // from 100 to actual pos for drama
   }
 
-  // Render Badges
+  // Render Badges (Dashboard Profil)
   const badgesContainer = document.getElementById('badges-container');
   if (badgesContainer) {
     badgesContainer.innerHTML = '';
-    const allPossibleBadges = [
-      { id: 'zebra', icon: '🦓', title: 'Zebra', desc: 'Acertou um placar com menos de 20% das apostas' },
-      { id: 'maria', icon: '🛡️', title: 'Seguidor', desc: 'Acertou placar com mais de 80% das apostas' },
-      { id: 'mae_dinah', icon: '🔮', title: 'Mãe Dináh', desc: 'Acertou 3 placares exatos seguidos' },
-      { id: 'pe_frio', icon: '🥶', title: 'Pé Frio', desc: 'Errou 5 palpites seguidos' },
-      { id: 'empate', icon: '🤝', title: 'Empate', desc: 'Acertou 3 empates exatos' },
-      { id: 'zero_zero', icon: '🍩', title: 'Zero a Zero', desc: 'Cravou um placar de 0x0' },
-      { id: 'goleada', icon: '💥', title: 'Goleada', desc: 'Placar exato em jogo com 4 gols ou mais' },
-      { id: 'curinga_exato', icon: '🌟', title: 'Curinga', desc: 'Placar exato usando Curinga 2x' },
-      { id: 'atirador', icon: '🎯', title: 'Atirador', desc: 'Acertou o vencedor de 10 jogos' },
-      { id: 'patriota', icon: '🏴', title: 'Patriota', desc: 'Cravou o placar da sua seleção' }
-    ];
+    let userBadgeIds = myData.badges ? myData.badges.map(b => b.id) : [];
     
-    let userBadges = myData.badges || [];
-    let userBadgeIds = userBadges.map(b => b.id);
-    
-    allPossibleBadges.forEach(b => {
+    ALL_POSSIBLE_BADGES.forEach(b => {
        const isEarned = userBadgeIds.includes(b.id);
        const bEl = document.createElement('div');
        bEl.className = 'badge-item ' + (isEarned ? 'earned' : 'locked');
@@ -1936,9 +1966,10 @@ function initApp() {
     }
   });
 
-  dbAPI.listenToUpdates(async function(ranking, officialResults) {
+  dbAPI.listenToUpdates(async function(ranking, officialResults, allPicksByMatch) {
     globalRanking = ranking;
     globalOfficialResults = officialResults;
+    globalAllPicksByMatch = allPicksByMatch || {};
     // Sync official results to localStorage for other reads
     localStorage.setItem('official_results', JSON.stringify(officialResults));
     renderSidebarRanking(ranking);
@@ -1984,6 +2015,11 @@ function initApp() {
         // Se ainda for necessário exibir algo inicial
       }
       renderBetResults(data.picks, officialResults);
+      
+      const myDataFromRanking = globalRanking.find(u => u.id === currentUser);
+      if (typeof renderSalaTrofeus === 'function' && myDataFromRanking) {
+        renderSalaTrofeus(myDataFromRanking);
+      }
     }
   });
 }

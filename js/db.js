@@ -255,6 +255,62 @@ const dbAPI = {
     }
   },
 
+  savePontosAjuste: async (userId, userName, val) => {
+    let localData = JSON.parse(localStorage.getItem('user_' + userId) || '{"picks":{}, "bonus":{}}');
+    localData.name = userName;
+    localData.pontos_ajuste = val;
+    localStorage.setItem('user_' + userId, JSON.stringify(localData));
+    if (db) {
+      await db.collection('users').doc(userId).set({
+        name: userName,
+        pontos_ajuste: val,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, {merge: true});
+    }
+  },
+
+  saveManualBadge: async (userId, badgeId) => {
+    let localData = JSON.parse(localStorage.getItem('user_' + userId) || '{"picks":{}, "bonus":{}}');
+    if (!localData.manualBadges) localData.manualBadges = [];
+    if (!localData.manualBadges.includes(badgeId)) {
+      localData.manualBadges.push(badgeId);
+    }
+    localStorage.setItem('user_' + userId, JSON.stringify(localData));
+
+    if (db) {
+      await db.collection('users').doc(userId).set({
+        manualBadges: firebase.firestore.FieldValue.arrayUnion(badgeId),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, {merge: true});
+    }
+  },
+  resetUserCuringa: async (userId) => {
+    let localData = JSON.parse(localStorage.getItem('user_' + userId) || '{"picks":{}, "bonus":{}}');
+    if (localData.picks) {
+      for (let mId in localData.picks) {
+        if (localData.picks[mId].isCuringa) {
+          localData.picks[mId].isCuringa = false;
+        }
+      }
+      localStorage.setItem('user_' + userId, JSON.stringify(localData));
+    }
+    if (db) {
+      const picksSnap = await db.collection('users').doc(userId).collection('picks').get();
+      const batch = db.batch();
+      picksSnap.forEach(doc => {
+        if (doc.data().isCuringa) {
+          batch.set(doc.ref, { isCuringa: firebase.firestore.FieldValue.delete() }, { merge: true });
+        }
+      });
+      await batch.commit();
+      
+      // Update updatedAt on user to trigger a recalculation
+      await db.collection('users').doc(userId).set({
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, {merge: true});
+    }
+  },
+
   saveUserName: async (userId, userName) => {
     let localData = JSON.parse(localStorage.getItem('user_' + userId) || '{"picks":{}, "bonus":{}}');
     localData.name = userName;
@@ -372,11 +428,15 @@ const dbAPI = {
               picksData[mId] = p;
               
               if (p.home !== undefined && p.away !== undefined) {
-                if (!allPicksByMatch[mId]) allPicksByMatch[mId] = { home: 0, draw: 0, away: 0, total: 0 };
+                if (!allPicksByMatch[mId]) allPicksByMatch[mId] = { home: 0, draw: 0, away: 0, total: 0, scores: {} };
                 allPicksByMatch[mId].total++;
                 if (p.home > p.away) allPicksByMatch[mId].home++;
                 else if (p.home < p.away) allPicksByMatch[mId].away++;
                 else allPicksByMatch[mId].draw++;
+                
+                const scoreStr = p.home + 'x' + p.away;
+                if (!allPicksByMatch[mId].scores[scoreStr]) allPicksByMatch[mId].scores[scoreStr] = 0;
+                allPicksByMatch[mId].scores[scoreStr]++;
               }
             });
             usersPicksMap[userDoc.id] = picksData;
@@ -388,9 +448,11 @@ const dbAPI = {
             const picksData = usersPicksMap[userDoc.id];
             
             let exato = 0, vencedor = 0, pts = 0;
+            let curingasUsados = 0;
             
             // Loop for basic points
             for (let mId in picksData) {
+              if (picksData[mId].isCuringa) curingasUsados++;
               const p = picksData[mId];
               const r = results[mId];
               if (r && r.home !== undefined && p.home !== undefined) {
@@ -419,6 +481,10 @@ const dbAPI = {
             if (results.bonus_defensor && userData.bonus_defensor === results.bonus_defensor) pts += 5;
             if (results.bonus_revelacao && userData.bonus_revelacao === results.bonus_revelacao) pts += 5;
             if (results.bonus_neymar_gol && userData.bonus_neymar_gol === results.bonus_neymar_gol) pts += 5;
+            
+            if (userData.pontos_ajuste) {
+              pts += parseInt(userData.pontos_ajuste);
+            }
 
             // Ordenar jogos finalizados pela data (usando ALL_MATCHES)
             let userFinishedMatches = [];
@@ -511,33 +577,61 @@ const dbAPI = {
             });
 
             // Badges Calculation
-            let badges = [];
-            if (hasZebra) badges.push({ id: 'zebra', icon: '🦓', title: 'Zebra (Acertou placar com menos de 20% das apostas)' });
-            if (hasMaria) badges.push({ id: 'maria', icon: '🛡️', title: 'Maria Vai com as Outras (Acertou placar com mais de 80% das apostas)' });
-            if (maxExactStreak >= 3) badges.push({ id: 'mae_dinah', icon: '🔮', title: 'Mãe Dináh (3 placares exatos seguidos)' });
-            if (maxMissStreak >= 5) badges.push({ id: 'pe_frio', icon: '🥶', title: 'Pé Frio (5 erros seguidos)' });
-            if (exactTies >= 3) badges.push({ id: 'empate', icon: '🤝', title: 'Mestre do Empate (Acertou 3 empates exatos)' });
-            if (has0x0) badges.push({ id: 'zero_zero', icon: '🍩', title: 'O Famoso 0x0 (Acertou um 0x0 exato)' });
-            if (hasGoleada) badges.push({ id: 'goleada', icon: '💥', title: 'Goleada Mágica (Acertou placar exato de jogo com 4+ gols)' });
-            if (hasCuringaExato) badges.push({ id: 'curinga_exato', icon: '🌟', title: 'Milagre do Curinga (Cravou placar usando multiplicador)' });
-            if (uniqueWinnerHits.size >= 10) badges.push({ id: 'atirador', icon: '🎯', title: 'Atirador de Elite (Acertou 10 jogos no campeonato)' });
-            if (hasPatriota) badges.push({ id: 'patriota', icon: '🏴', title: 'Patriota (Cravou o placar da sua seleção)' });
+            const ALL_POSSIBLE_BADGES = {
+              'zebra': { id: 'zebra', icon: '🦓', title: 'Zebra (Acertou placar com menos de 20% das apostas)' },
+              'maria': { id: 'maria', icon: '🛡️', title: 'Maria Vai com as Outras (Acertou placar com mais de 80% das apostas)' },
+              'mae_dinah': { id: 'mae_dinah', icon: '🔮', title: 'Mãe Dináh (3 placares exatos seguidos)' },
+              'pe_frio': { id: 'pe_frio', icon: '🥶', title: 'Pé Frio (5 erros seguidos)' },
+              'empate': { id: 'empate', icon: '🤝', title: 'Mestre do Empate (Acertou 3 empates exatos)' },
+              'zero_zero': { id: 'zero_zero', icon: '🍩', title: 'O Famoso 0x0 (Acertou um 0x0 exato)' },
+              'goleada': { id: 'goleada', icon: '💥', title: 'Goleada Mágica (Acertou placar exato de jogo com 4+ gols)' },
+              'curinga_exato': { id: 'curinga_exato', icon: '🌟', title: 'Milagre do Curinga (Cravou placar usando multiplicador)' },
+              'atirador': { id: 'atirador', icon: '🎯', title: 'Atirador de Elite (Acertou 10 jogos no campeonato)' },
+              'patriota': { id: 'patriota', icon: '🏴', title: 'Patriota (Cravou o placar da sua seleção)' }
+            };
 
-            ranking.push({ 
-               id: userDoc.id, 
-               name: userData.name || 'Anônimo', 
-               pts: pts, 
-               exato: exato, 
-               vencedor: vencedor, 
-               avatar: userData.avatar_bandeira || '', 
-               badges: badges,
-               currentHitStreak: currentHitStreak,
-               picks: picksData, 
-               bonus_answers: { artilheiro: userData.bonus_artilheiro, ataque: userData.bonus_ataque, campeao: userData.bonus_campeao, decepcao: userData.bonus_decepcao, craque: userData.bonus_craque, goleiro: userData.bonus_goleiro, defensor: userData.bonus_defensor, revelacao: userData.bonus_revelacao, neymar_gol: userData.bonus_neymar_gol } 
+            let userBadgesMap = new Map();
+            let manualBadges = userData.manualBadges || [];
+            
+            // 1. Adiciona manuais primeiro
+            manualBadges.forEach(bId => {
+               if (ALL_POSSIBLE_BADGES[bId]) {
+                 userBadgesMap.set(bId, ALL_POSSIBLE_BADGES[bId]);
+               }
             });
+            // 2. Adiciona automáticos (sobrescreve ou apenas adiciona se não existir)
+            if (hasZebra) userBadgesMap.set('zebra', ALL_POSSIBLE_BADGES['zebra']);
+            if (hasMaria) userBadgesMap.set('maria', ALL_POSSIBLE_BADGES['maria']);
+            if (maxExactStreak >= 3) userBadgesMap.set('mae_dinah', ALL_POSSIBLE_BADGES['mae_dinah']);
+            if (maxMissStreak >= 5) userBadgesMap.set('pe_frio', ALL_POSSIBLE_BADGES['pe_frio']);
+            if (exactTies >= 3) userBadgesMap.set('empate', ALL_POSSIBLE_BADGES['empate']);
+            if (has0x0) userBadgesMap.set('zero_zero', ALL_POSSIBLE_BADGES['zero_zero']);
+            if (hasGoleada) userBadgesMap.set('goleada', ALL_POSSIBLE_BADGES['goleada']);
+            if (hasCuringaExato) userBadgesMap.set('curinga_exato', ALL_POSSIBLE_BADGES['curinga_exato']);
+            if (uniqueWinnerHits.size >= 10) userBadgesMap.set('atirador', ALL_POSSIBLE_BADGES['atirador']);
+            if (hasPatriota) userBadgesMap.set('patriota', ALL_POSSIBLE_BADGES['patriota']);
+
+            let badges = Array.from(userBadgesMap.values());
+
+            if (Object.keys(picksData).length > 0) {
+              ranking.push({ 
+                 id: userDoc.id, 
+                 name: userData.name || 'Anônimo', 
+                 pts: pts, 
+                 pontos_ajuste: userData.pontos_ajuste || 0,
+                 curingasUsados: curingasUsados,
+                 exato: exato, 
+                 vencedor: vencedor, 
+                 avatar: userData.avatar_bandeira || '', 
+                 badges: badges,
+                 currentHitStreak: currentHitStreak,
+                 picks: picksData, 
+                 bonus_answers: { artilheiro: userData.bonus_artilheiro, ataque: userData.bonus_ataque, campeao: userData.bonus_campeao, decepcao: userData.bonus_decepcao, craque: userData.bonus_craque, goleiro: userData.bonus_goleiro, defensor: userData.bonus_defensor, revelacao: userData.bonus_revelacao, neymar_gol: userData.bonus_neymar_gol } 
+              });
+            }
           }
           ranking.sort(function(a, b) { return b.pts - a.pts || b.exato - a.exato; });
-        callback(ranking, results);
+        callback(ranking, results, allPicksByMatch);
       });
     });
   },

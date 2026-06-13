@@ -298,22 +298,28 @@ function renderRanking() {
 function renderUsuarios() {
   const tbody = document.getElementById('admin-usuarios-tbody');
   if (!allUsersCache.length) {
-    tbody.innerHTML = '<tr><td colspan="5">Nenhum usuário encontrado.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6">Nenhum usuário encontrado.</td></tr>';
     return;
   }
   
   let html = '';
-  // allUsersCache already has pts, exato, vencedor from listenToUpdates
+  // allUsersCache already has pts, exato, vencedor, curingasUsados from listenToUpdates
   allUsersCache.forEach((user) => {
+    let curingasDisp = 2 - (user.curingasUsados || 0);
     html += `
       <tr>
         <td><strong>${user.name}</strong><br><small style="color:var(--admin-muted)">ID: ${user.id}</small></td>
         <td>${user.pts}</td>
         <td>${user.exato}</td>
         <td>${user.vencedor}</td>
+        <td><strong>${curingasDisp}</strong> disp.</td>
         <td>
-          <button class="btn-admin" onclick="filtrarApostasUsuario('${user.id}')" style="margin-right:8px;">Ver Apostas</button>
-          <button class="btn-admin danger" onclick="zerarUsuario('${user.id}')">Zerar Pontuação</button>
+          <button class="btn-admin" onclick="filtrarApostasUsuario('${user.id}')" style="margin-right:8px; margin-bottom:4px;">Ver Apostas</button>
+          <button class="btn-admin secondary" onclick="definirPontos('${user.id}', '${user.name}', ${user.pontos_ajuste})" style="margin-right:8px; margin-bottom:4px; background:var(--admin-success); color:white; border:none;">Definir Pontos</button>
+          <button class="btn-admin" onclick="resetarCuringa('${user.id}')" style="margin-right:8px; margin-bottom:4px; background:#eab308; color:black; border:none;">Resetar Curinga</button>
+          <button class="btn-admin" onclick="darTrofeuManual('${user.id}', '${user.name}')" style="margin-right:8px; margin-bottom:4px; background:#8a2be2; color:white; border:none;">Dar Troféu 🏆</button>
+          <button class="btn-admin secondary" onclick="zerarUsuario('${user.id}')" style="margin-right:8px; margin-bottom:4px;">Zerar Pontuação</button>
+          <button class="btn-admin danger" onclick="excluirUsuario('${user.id}', '${user.name}')" style="margin-bottom:4px;">Excluir Conta</button>
         </td>
       </tr>
     `;
@@ -345,6 +351,88 @@ window.zerarUsuario = async function(userId) {
   }
   showAdminToast("Pontuação do usuário zerada com sucesso!");
 };
+
+window.excluirUsuario = async function(userId, userName) {
+  const code = prompt(`ATENÇÃO! Digite DELETAR para apagar permanentemente a conta de ${userName}. Eles terão que fazer um novo cadastro se quiserem voltar:`);
+  if (code !== "DELETAR") {
+    showAdminToast("Operação abortada.", true);
+    return;
+  }
+  
+  logAction("Excluir Usuário", `Usuário ${userName} (${userId}) excluído do sistema.`, '');
+  
+  if (typeof db !== 'undefined' && db) {
+    const picksSnap = await db.collection('users').doc(userId).collection('picks').get();
+    const batch = db.batch();
+    picksSnap.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+    // Apaga o documento raiz do usuário
+    batch.delete(db.collection('users').doc(userId));
+    await batch.commit();
+  } else {
+    localStorage.removeItem('user_' + userId);
+  }
+  showAdminToast(`Conta de ${userName} excluída permanentemente!`);
+};
+
+window.definirPontos = async function(userId, userName, currentAjuste) {
+  const val = prompt(`Ajuste de Pontos para ${userName}.\n\nValor atual de ajuste: ${currentAjuste}\n\nDigite o valor que deseja adicionar (ex: 10) ou subtrair (ex: -5) do total de pontos:`, currentAjuste || 0);
+  if (val === null) return; // Cancelled
+  
+  const intVal = parseInt(val);
+  if (isNaN(intVal)) {
+    showAdminToast("Valor inválido.", true);
+    return;
+  }
+  
+  await dbAPI.savePontosAjuste(userId, userName, intVal);
+  logAction("Definir Pontos", `Usuário ${userId} recebeu ajuste de ${intVal} pontos`, "");
+  showAdminToast("Pontos ajustados com sucesso! Ranking será recalculado.");
+};
+
+window.resetarCuringa = async function(userId) {
+  if (!confirm("Tem certeza que deseja devolver a carta lendária (2x) para este usuário?\n\nIsso removerá o bônus 2x de TODAS as apostas anteriores dele onde o curinga foi usado, permitindo que ele use novamente.")) return;
+  
+  await dbAPI.resetUserCuringa(userId);
+  logAction("Resetar Curinga", `Curinga do usuário ${userId} resetado`, "");
+  showAdminToast("Curinga resetado com sucesso!");
+};
+
+window.darTrofeuManual = async function(userId, userName) {
+  document.getElementById('dar-trofeu-userid').value = userId;
+  document.getElementById('dar-trofeu-username').innerText = userName;
+  document.getElementById('dar-trofeu-select').selectedIndex = 0;
+  document.getElementById('modal-dar-trofeu').classList.remove('hidden');
+};
+
+document.getElementById('btn-cancel-trofeu').addEventListener('click', () => {
+  document.getElementById('modal-dar-trofeu').classList.add('hidden');
+});
+
+document.getElementById('btn-save-trofeu').addEventListener('click', async () => {
+  const userId = document.getElementById('dar-trofeu-userid').value;
+  const badgeId = document.getElementById('dar-trofeu-select').value;
+  const userName = document.getElementById('dar-trofeu-username').innerText;
+
+  if (!badgeId || !userId) return;
+
+  const btn = document.getElementById('btn-save-trofeu');
+  btn.innerText = 'Salvando...';
+  btn.disabled = true;
+
+  try {
+    await dbAPI.saveManualBadge(userId, badgeId);
+    logAction("Dar Troféu", `Deu o troféu '${badgeId}' para o usuário ${userId}`, "");
+    showAdminToast(`Troféu concedido com sucesso para ${userName}! Ranking será recalculado.`);
+    document.getElementById('modal-dar-trofeu').classList.add('hidden');
+  } catch (err) {
+    showAdminToast("Erro ao conceder troféu.", true);
+  }
+
+  btn.innerText = 'Conceder Troféu';
+  btn.disabled = false;
+});
 
 document.getElementById('btn-recalc-all').addEventListener('click', () => {
   // Since db.js listenToUpdates already fetches ALL users and ALL results and calculates them, 
