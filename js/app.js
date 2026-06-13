@@ -769,7 +769,7 @@ function setupAutoSave() {
 }
 
 // 9. RANKING REAL-TIME — Redesenhado com estado vazio
-function renderSidebarRanking(ranking) {
+function renderSidebarRanking(ranking) { ranking = ranking.filter(u => Object.keys(u.picks || {}).length > 0);
   if (!ranking || ranking.length === 0) {
     els.rankingContainer.innerHTML = '<div class="ranking-empty">O ranking será atualizado após os primeiros jogos.</div>';
     return;
@@ -945,15 +945,15 @@ function initDueloSelects() {
   
   if (selA.options.length === 0) {
     let opts = '';
-    globalRanking.forEach(u => {
+    var displayRanking = globalRanking.filter(u => Object.keys(u.picks || {}).length > 0); displayRanking.forEach(u => {
       opts += `<option value="${u.id}">${(u.nickname || u.name)}</option>`;
     });
     selA.innerHTML = opts;
     selB.innerHTML = opts;
     
     // Set default selected
-    if (globalRanking.length > 0) selA.selectedIndex = 0;
-    if (globalRanking.length > 1) selB.selectedIndex = 1;
+    if (displayRanking.length > 0) selA.selectedIndex = 0;
+    if (displayRanking.length > 1) selB.selectedIndex = 1;
   }
 }
 
@@ -1231,7 +1231,8 @@ function updateLiveTab() {
 function renderFullRanking() {
   if (!els.rankingGeralTbody) return;
   var html = '';
-  globalRanking.forEach(function(u, idx) {
+  var displayRanking = globalRanking.filter(u => Object.keys(u.picks || {}).length > 0);
+  displayRanking.forEach(function(u, idx) {
     var isMe = (u.id === currentUser);
     var rowStyle = isMe ? 'background: rgba(255, 215, 0, 0.1); font-weight: bold;' : '';
     
@@ -1631,7 +1632,7 @@ function updateDashboardProfile() {
     animateValue(dashPtsEl, 0, myData.pts, 1000);
   }
   if (dashPosEl) {
-    const pos = globalRanking.findIndex(u => u.id === currentUser) + 1;
+    var dRank = globalRanking.filter(u => Object.keys(u.picks || {}).length > 0); const pos = dRank.findIndex(u => u.id === currentUser) + 1;
     animateValue(dashPosEl, 100, pos, 1500); // from 100 to actual pos for drama
   }
 
@@ -2097,3 +2098,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }, 1000);
 });
+

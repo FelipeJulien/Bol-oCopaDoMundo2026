@@ -16,7 +16,7 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
+<body><script>window.onerror = function(msg, url, line, col, error) { alert("ERRO JS: " + msg + "\nLinha: " + line + "\nURL: " + url); }; window.addEventListener("unhandledrejection", function(e) { alert("PROMISE REJECTED: " + e.reason); });</script>
 
   <!-- Goal Notification Container -->
   <div id="goal-notification-container" class="goal-notification hidden">

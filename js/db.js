@@ -648,10 +648,11 @@ const dbAPI = {
 
             let badges = Array.from(userBadgesMap.values());
 
-            if (Object.keys(picksData).length > 0) {
+            // if (Object.keys(picksData).length > 0) {
               ranking.push({ 
                  id: userDoc.id, 
                  name: userData.name || 'Anônimo', 
+                 nickname: userData.nickname || '',
                  pts: pts, 
                  pontos_ajuste: userData.pontos_ajuste || 0,
                  curingasUsados: curingasUsados,
@@ -663,7 +664,7 @@ const dbAPI = {
                  picks: picksData, 
                  bonus_answers: { artilheiro: userData.bonus_artilheiro, ataque: userData.bonus_ataque, campeao: userData.bonus_campeao, decepcao: userData.bonus_decepcao, craque: userData.bonus_craque, goleiro: userData.bonus_goleiro, defensor: userData.bonus_defensor, revelacao: userData.bonus_revelacao, neymar_gol: userData.bonus_neymar_gol } 
               });
-            }
+            // }
           }
           ranking.sort(function(a, b) { return b.pts - a.pts || b.exato - a.exato; });
         callback(ranking, results, allPicksByMatch);
