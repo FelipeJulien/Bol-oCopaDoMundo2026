@@ -221,17 +221,23 @@ if (typeof firebase !== 'undefined' && firebaseConfig.apiKey) {
 
 // 8. API DO BANCO DE DADOS
 const dbAPI = {
-  savePick: async (userId, userName, matchId, home, away) => {
+  savePick: async (userId, userName, matchId, home, away, isCuringa = false) => {
     let localData = JSON.parse(localStorage.getItem('user_' + userId) || '{"picks":{}, "bonus":{}}');
     localData.name = userName;
-    localData.picks[matchId] = { home: home, away: away };
+    if (!localData.picks[matchId]) localData.picks[matchId] = {};
+    localData.picks[matchId].home = home;
+    localData.picks[matchId].away = away;
+    if (isCuringa !== undefined) localData.picks[matchId].isCuringa = isCuringa;
     localStorage.setItem('user_' + userId, JSON.stringify(localData));
     if (db) {
       await db.collection('users').doc(userId).set({
         name: userName,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       }, {merge: true});
-      await db.collection('users').doc(userId).collection('picks').doc(matchId).set({ home: home, away: away });
+      const pickData = { home: home, away: away };
+      if (isCuringa) pickData.isCuringa = true;
+      else pickData.isCuringa = false;
+      await db.collection('users').doc(userId).collection('picks').doc(matchId).set(pickData, {merge: true});
     }
   },
 
@@ -353,101 +359,184 @@ const dbAPI = {
     db.collection('meta').doc('results').onSnapshot(function(snap) {
       const results = snap.exists ? snap.data() : {};
       db.collection('users').get().then(async function(usersSnap) {
-        const ranking = [];
-        for (let userDoc of usersSnap.docs) {
-          const userData = userDoc.data();
-          const picksSnap = await db.collection('users').doc(userDoc.id).collection('picks').get();
-          let exato = 0, vencedor = 0, pts = 0;
-          picksSnap.forEach(function(pickDoc) {
-            const mId = pickDoc.id;
-            const p = pickDoc.data();
-            const r = results[mId];
-            if (r && r.home !== undefined && p.home !== undefined) {
-              if (p.home === r.home && p.away === r.away) {
-                exato++; pts += 3;
-              } else if (
-                (p.home > p.away && r.home > r.away) ||
-                (p.home < p.away && r.home < r.away) ||
-                (p.home === p.away && r.home === r.away)
-              ) {
-                vencedor++; pts += 1;
-              }
-            }
-          });
-          // Calcular pontos de bonus
-          if (results.bonus_artilheiro && userData.bonus_artilheiro === results.bonus_artilheiro) pts += 5;
-          if (results.bonus_ataque && userData.bonus_ataque === results.bonus_ataque) pts += 5;
-          if (results.bonus_campeao && userData.bonus_campeao === results.bonus_campeao) pts += 5;
-          if (results.bonus_decepcao && userData.bonus_decepcao === results.bonus_decepcao) pts += 5;
-          if (results.bonus_craque && userData.bonus_craque === results.bonus_craque) pts += 5;
-          if (results.bonus_goleiro && userData.bonus_goleiro === results.bonus_goleiro) pts += 5;
-          if (results.bonus_defensor && userData.bonus_defensor === results.bonus_defensor) pts += 5;
-          if (results.bonus_revelacao && userData.bonus_revelacao === results.bonus_revelacao) pts += 5;
-          if (results.bonus_neymar_gol && userData.bonus_neymar_gol === results.bonus_neymar_gol) pts += 5;
-
-          let picksData = {};
-          picksSnap.forEach(function(pDoc) {
-            picksData[pDoc.id] = pDoc.data();
-          });
-
-          // Badges Calculation
-          let badges = [];
+          const usersPicksMap = {};
+          const allPicksByMatch = {};
           
-          // Ordenar jogos finalizados pela data (usando ALL_MATCHES)
-          let userFinishedMatches = [];
-          ALL_MATCHES.forEach(function(m) {
-            const r = results[m.id];
-            const p = picksData[m.id];
-            if (r && r.home !== undefined && p && p.home !== undefined) {
-              let ptsMatch = 0;
-              if (p.home === r.home && p.away === r.away) ptsMatch = 3;
-              else if (
-                (p.home > p.away && r.home > r.away) ||
-                (p.home < p.away && r.home < r.away) ||
-                (p.home === p.away && r.home === r.away)
-              ) ptsMatch = 1;
-              userFinishedMatches.push({ match: m, pts: ptsMatch, totalGoals: r.home + r.away, exact: ptsMatch === 3 });
-            }
-          });
-
-          // Sort por data
-          userFinishedMatches.sort((a, b) => a.match.date - b.match.date);
-
-          // Mae Dinah (3 exatos seguidos) & Pe Frio (5 erros seguidos)
-          let currentExactStreak = 0;
-          let maxExactStreak = 0;
-          let currentMissStreak = 0;
-          let maxMissStreak = 0;
-
-          userFinishedMatches.forEach(function(um) {
-            if (um.exact) {
-              currentExactStreak++;
-              maxExactStreak = Math.max(maxExactStreak, currentExactStreak);
-            } else {
-              currentExactStreak = 0;
-            }
-
-            if (um.pts === 0) {
-              currentMissStreak++;
-              maxMissStreak = Math.max(maxMissStreak, currentMissStreak);
-            } else {
-              currentMissStreak = 0;
-            }
-          });
-
-          if (maxExactStreak >= 3) badges.push({ id: 'mae_dinah', icon: '🔮', title: 'Mãe Dináh (3 placares exatos seguidos)' });
-          if (maxMissStreak >= 5) badges.push({ id: 'pe_frio', icon: '🥶', title: 'Pé Frio (5 erros seguidos)' });
-
-          // Goleador (acerto exato no jogo com mais gols)
-          if (userFinishedMatches.length > 0) {
-            let maxGoals = Math.max(...userFinishedMatches.map(um => um.totalGoals));
-            let gotGoleador = userFinishedMatches.some(um => um.totalGoals === maxGoals && um.exact && maxGoals > 0);
-            if (gotGoleador) badges.push({ id: 'goleador', icon: '⚽', title: 'Goleador (Placar exato no jogo com mais gols)' });
+          // First Pass: Load all picks and calculate community stats
+          for (let userDoc of usersSnap.docs) {
+            const picksSnap = await db.collection('users').doc(userDoc.id).collection('picks').get();
+            const picksData = {};
+            picksSnap.forEach(function(pickDoc) {
+              const mId = pickDoc.id;
+              const p = pickDoc.data();
+              picksData[mId] = p;
+              
+              if (p.home !== undefined && p.away !== undefined) {
+                if (!allPicksByMatch[mId]) allPicksByMatch[mId] = { home: 0, draw: 0, away: 0, total: 0 };
+                allPicksByMatch[mId].total++;
+                if (p.home > p.away) allPicksByMatch[mId].home++;
+                else if (p.home < p.away) allPicksByMatch[mId].away++;
+                else allPicksByMatch[mId].draw++;
+              }
+            });
+            usersPicksMap[userDoc.id] = picksData;
           }
 
-          ranking.push({ id: userDoc.id, name: userData.name || 'Anônimo', pts: pts, exato: exato, vencedor: vencedor, avatar: userData.avatar_bandeira || '', badges: badges, picks: picksData, bonus_answers: { artilheiro: userData.bonus_artilheiro, ataque: userData.bonus_ataque, campeao: userData.bonus_campeao, decepcao: userData.bonus_decepcao, craque: userData.bonus_craque, goleiro: userData.bonus_goleiro, defensor: userData.bonus_defensor, revelacao: userData.bonus_revelacao, neymar_gol: userData.bonus_neymar_gol } });
-        }
-        ranking.sort(function(a, b) { return b.pts - a.pts || b.exato - a.exato; });
+          const ranking = [];
+          for (let userDoc of usersSnap.docs) {
+            const userData = userDoc.data();
+            const picksData = usersPicksMap[userDoc.id];
+            
+            let exato = 0, vencedor = 0, pts = 0;
+            
+            // Loop for basic points
+            for (let mId in picksData) {
+              const p = picksData[mId];
+              const r = results[mId];
+              if (r && r.home !== undefined && p.home !== undefined) {
+                let matchPts = 0;
+                if (p.home === r.home && p.away === r.away) {
+                  exato++; matchPts = 3;
+                } else if (
+                  (p.home > p.away && r.home > r.away) ||
+                  (p.home < p.away && r.home < r.away) ||
+                  (p.home === p.away && r.home === r.away)
+                ) {
+                  vencedor++; matchPts = 1;
+                }
+                if (p.isCuringa) matchPts *= 2;
+                pts += matchPts;
+              }
+            }
+
+            // Calcular pontos de bonus
+            if (results.bonus_artilheiro && userData.bonus_artilheiro === results.bonus_artilheiro) pts += 5;
+            if (results.bonus_ataque && userData.bonus_ataque === results.bonus_ataque) pts += 5;
+            if (results.bonus_campeao && userData.bonus_campeao === results.bonus_campeao) pts += 5;
+            if (results.bonus_decepcao && userData.bonus_decepcao === results.bonus_decepcao) pts += 5;
+            if (results.bonus_craque && userData.bonus_craque === results.bonus_craque) pts += 5;
+            if (results.bonus_goleiro && userData.bonus_goleiro === results.bonus_goleiro) pts += 5;
+            if (results.bonus_defensor && userData.bonus_defensor === results.bonus_defensor) pts += 5;
+            if (results.bonus_revelacao && userData.bonus_revelacao === results.bonus_revelacao) pts += 5;
+            if (results.bonus_neymar_gol && userData.bonus_neymar_gol === results.bonus_neymar_gol) pts += 5;
+
+            // Ordenar jogos finalizados pela data (usando ALL_MATCHES)
+            let userFinishedMatches = [];
+            ALL_MATCHES.forEach(function(m) {
+              const r = results[m.id];
+              const p = picksData[m.id];
+              if (r && r.home !== undefined && p && p.home !== undefined) {
+                let isExact = false;
+                let isWinner = false;
+                if (p.home === r.home && p.away === r.away) isExact = true;
+                else if (
+                  (p.home > p.away && r.home > r.away) ||
+                  (p.home < p.away && r.home < r.away) ||
+                  (p.home === p.away && r.home === r.away)
+                ) isWinner = true;
+                
+                userFinishedMatches.push({
+                  match: m, 
+                  pick: p,
+                  result: r,
+                  pts: (isExact ? 3 : (isWinner ? 1 : 0)) * (p.isCuringa ? 2 : 1), 
+                  totalGoals: r.home + r.away, 
+                  exact: isExact,
+                  winner: isWinner || isExact,
+                  isTie: p.home === p.away
+                });
+              }
+            });
+
+            // Sort por data
+            userFinishedMatches.sort((a, b) => a.match.date - b.match.date);
+
+            let currentHitStreak = 0; // The requested Hot Streak
+            let currentExactStreak = 0;
+            let maxExactStreak = 0;
+            let currentMissStreak = 0;
+            let maxMissStreak = 0;
+            let exactTies = 0;
+            let hasZebra = false;
+            let hasMaria = false;
+            let has0x0 = false;
+            let hasGoleada = false;
+            let hasCuringaExato = false;
+            let uniqueWinnerHits = new Set();
+            let hasPatriota = false;
+
+            userFinishedMatches.forEach(function(um) {
+              if (um.exact) {
+                currentExactStreak++;
+                maxExactStreak = Math.max(maxExactStreak, currentExactStreak);
+              } else {
+                currentExactStreak = 0;
+              }
+
+              if (um.pts === 0) {
+                currentMissStreak++;
+                maxMissStreak = Math.max(maxMissStreak, currentMissStreak);
+                currentHitStreak = 0;
+              } else {
+                currentMissStreak = 0;
+                currentHitStreak++;
+              }
+              
+              if (um.exact && um.isTie) exactTies++;
+              if (um.exact && um.pick.home === 0 && um.pick.away === 0) has0x0 = true;
+              if (um.exact && um.totalGoals >= 4) hasGoleada = true;
+              if (um.exact && um.pick.isCuringa) hasCuringaExato = true;
+              if (um.winner) uniqueWinnerHits.add(um.match.id);
+              
+              if (userData.avatar_bandeira && um.exact) {
+                 if (um.match.home.code === userData.avatar_bandeira || um.match.away.code === userData.avatar_bandeira) {
+                    hasPatriota = true;
+                 }
+              }
+
+              // Zebra e Maria Vai Com As Outras
+              if (um.winner) {
+                const cStats = allPicksByMatch[um.match.id];
+                if (cStats && cStats.total >= 3) { // precisa de um quórum mínimo para ser zebra
+                   let pickType = '';
+                   if (um.pick.home > um.pick.away) pickType = 'home';
+                   else if (um.pick.home < um.pick.away) pickType = 'away';
+                   else pickType = 'draw';
+                   
+                   const pct = cStats[pickType] / cStats.total;
+                   if (pct <= 0.20) hasZebra = true;
+                   if (pct >= 0.80) hasMaria = true;
+                }
+              }
+            });
+
+            // Badges Calculation
+            let badges = [];
+            if (hasZebra) badges.push({ id: 'zebra', icon: '🦓', title: 'Zebra (Acertou placar com menos de 20% das apostas)' });
+            if (hasMaria) badges.push({ id: 'maria', icon: '🛡️', title: 'Maria Vai com as Outras (Acertou placar com mais de 80% das apostas)' });
+            if (maxExactStreak >= 3) badges.push({ id: 'mae_dinah', icon: '🔮', title: 'Mãe Dináh (3 placares exatos seguidos)' });
+            if (maxMissStreak >= 5) badges.push({ id: 'pe_frio', icon: '🥶', title: 'Pé Frio (5 erros seguidos)' });
+            if (exactTies >= 3) badges.push({ id: 'empate', icon: '🤝', title: 'Mestre do Empate (Acertou 3 empates exatos)' });
+            if (has0x0) badges.push({ id: 'zero_zero', icon: '🍩', title: 'O Famoso 0x0 (Acertou um 0x0 exato)' });
+            if (hasGoleada) badges.push({ id: 'goleada', icon: '💥', title: 'Goleada Mágica (Acertou placar exato de jogo com 4+ gols)' });
+            if (hasCuringaExato) badges.push({ id: 'curinga_exato', icon: '🌟', title: 'Milagre do Curinga (Cravou placar usando multiplicador)' });
+            if (uniqueWinnerHits.size >= 10) badges.push({ id: 'atirador', icon: '🎯', title: 'Atirador de Elite (Acertou 10 jogos no campeonato)' });
+            if (hasPatriota) badges.push({ id: 'patriota', icon: '🏴', title: 'Patriota (Cravou o placar da sua seleção)' });
+
+            ranking.push({ 
+               id: userDoc.id, 
+               name: userData.name || 'Anônimo', 
+               pts: pts, 
+               exato: exato, 
+               vencedor: vencedor, 
+               avatar: userData.avatar_bandeira || '', 
+               badges: badges,
+               currentHitStreak: currentHitStreak,
+               picks: picksData, 
+               bonus_answers: { artilheiro: userData.bonus_artilheiro, ataque: userData.bonus_ataque, campeao: userData.bonus_campeao, decepcao: userData.bonus_decepcao, craque: userData.bonus_craque, goleiro: userData.bonus_goleiro, defensor: userData.bonus_defensor, revelacao: userData.bonus_revelacao, neymar_gol: userData.bonus_neymar_gol } 
+            });
+          }
+          ranking.sort(function(a, b) { return b.pts - a.pts || b.exato - a.exato; });
         callback(ranking, results);
       });
     });

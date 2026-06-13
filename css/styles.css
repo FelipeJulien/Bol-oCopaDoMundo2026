@@ -369,12 +369,14 @@ h1, h2, h3, h4, .condensed {
 }
 .tab-pane {
   display: none;
-  animation: fadeIn 0.3s ease;
+  opacity: 0;
+  transform: translateX(20px);
+  animation: slideFadeIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 .tab-pane.active { display: block; }
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes slideFadeIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
 .section-title {
@@ -596,6 +598,29 @@ h1, h2, h3, h4, .condensed {
   align-items: center;
   gap: 6px;
   margin-left: 8px;
+}
+
+.btn-curinga {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-block;
+}
+
+.btn-curinga:hover:not(:disabled) {
+  background: rgba(255, 215, 0, 0.1);
+  color: var(--accent-gold);
+  border-color: var(--accent-gold);
+}
+
+.btn-curinga:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .match-live-indicator .live-dot {
   width: 8px;
@@ -1606,6 +1631,42 @@ h1, h2, h3, h4, .condensed {
     grid-template-columns: 1fr;
   }
   .team-name { font-size: 12px; }
+  
+  /* Login Modal Responsivo */
+  .card-responsive {
+    padding: 24px !important;
+    margin: 12px !important;
+  }
+  .card-responsive .font-size-96px {
+    font-size: 72px !important;
+  }
+  
+  /* Dashboard Grids */
+  .profile-dashboard-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+  .bracket-container-desktop {
+    display: flex;
+    min-width: 800px; /* Reduces scroll width on mobile for better view */
+    gap: 16px;
+    justify-content: space-between;
+  }
+}
+
+@media (min-width: 481px) {
+  .profile-dashboard-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+  }
+  .bracket-container-desktop {
+    display: flex;
+    min-width: 1200px;
+    gap: 40px;
+    justify-content: space-between;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1926,4 +1987,100 @@ h1, h2, h3, h4, .condensed {
 .bracket-column { display: flex; flex-direction: column; justify-content: space-around; min-width: 200px; gap: 20px; }
 .bracket-match { background: #1a1a1a; border: 1px solid var(--border-subtle); padding: 10px; border-radius: 6px; font-size: 0.9rem; text-align: center; }
 
+/* Badges e Troféus */
+.badge-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 90px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+.badge-item.locked {
+  filter: grayscale(100%) opacity(0.4);
+  background: #111;
+}
+.badge-item.earned {
+  border-color: var(--accent-gold);
+  background: linear-gradient(145deg, rgba(255, 215, 0, 0.1) 0%, rgba(0,0,0,0) 100%);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+}
+.badge-icon {
+  font-size: 2.2rem;
+  margin-bottom: 4px;
+}
+.badge-title {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.1;
+  font-weight: 600;
+  text-transform: uppercase;
+  width: 100%;
+}
 
+@keyframes pulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 69, 0, 0.7); }
+  70% { transform: scale(1.05); box-shadow: 0 0 0 6px rgba(255, 69, 0, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 69, 0, 0); }
+}
+
+/* Toast Messages */
+.toast-msg {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  padding: 12px 20px;
+  border-radius: 8px;
+  border: 1px solid var(--accent-gold);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  animation: fadeinup 0.3s ease forwards;
+  font-size: 0.9rem;
+  max-width: 300px;
+  text-align: center;
+  z-index: 10000;
+}
+.toast-msg.hide {
+  animation: fadeoutdown 0.3s ease forwards;
+}
+@keyframes fadeinup {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeoutdown {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(20px); }
+}
+
+/* Glassmorphism para Login Modal */
+.login-content {
+  background: rgba(20, 20, 20, 0.4) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8) !important;
+  position: relative;
+  overflow: hidden;
+  animation: modalLoginEnter 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes modalLoginEnter {
+  from { opacity: 0; transform: translateY(40px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes spinBall {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes floatTrophy {
+  0% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-8px) scale(1.05); }
+  100% { transform: translateY(0px) scale(1); }
+}

@@ -55,8 +55,11 @@ document.getElementById('btn-login').addEventListener('click', () => {
   }
 });
 
-document.getElementById('auth-name-input').addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') document.getElementById('btn-login').click();
+document.getElementById('auth-name-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.keyCode === 13) {
+    e.preventDefault();
+    document.getElementById('btn-login').click();
+  }
 });
 
 document.getElementById('btn-logout').addEventListener('click', () => {

@@ -47,6 +47,25 @@ function getDateKey(dateObj) {
   return dateObj.getFullYear() + '-' + String(dateObj.getMonth()+1).padStart(2,'0') + '-' + String(dateObj.getDate()).padStart(2,'0');
 }
 
+// ANIMAÇÃO DE CONTADORES (ODÔMETRO)
+function animateValue(obj, start, end, duration) {
+  if (!obj) return;
+  let startTimestamp = null;
+  const step = (timestamp) => {
+    if (!startTimestamp) startTimestamp = timestamp;
+    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+    // easing out
+    const easeOutQuad = 1 - (1 - progress) * (1 - progress);
+    obj.innerHTML = Math.floor(easeOutQuad * (end - start) + start);
+    if (progress < 1) {
+      window.requestAnimationFrame(step);
+    } else {
+      obj.innerHTML = end;
+    }
+  };
+  window.requestAnimationFrame(step);
+}
+
 // 2. GERAR HTML DE UM CARD DE JOGO — Redesign 3 colunas
 function buildMatchCardHTML(match) {
   var agora = new Date();
@@ -109,6 +128,9 @@ function buildMatchCardHTML(match) {
           '<span class="vs-text">×</span>' +
           '<input type="number" class="score-input p-away" data-match="' + match.id + '" min="0" max="20" id="p-away-' + match.id + '"' + (isLocked ? ' disabled' : '') + '>' +
           '<div class="save-status" id="status-' + match.id + '">✓</div>' +
+        '</div>' +
+        '<div style="margin-top:8px;">' +
+          '<button class="btn-curinga" id="btn-curinga-' + match.id + '" data-match="' + match.id + '" onclick="toggleCuringa(\'' + match.id + '\')" ' + (isLocked ? 'disabled' : '') + '>⭐ Usar Curinga 2x</button>' +
         '</div>' +
         '<div class="official-score-wrapper">' +
           '<div class="official-score-box" id="off-box-' + match.id + '">' +
@@ -351,7 +373,8 @@ function renderBetResults(picks, officialResults) {
       var borderColor = '';
       
       if (p.home === r.home && p.away === r.away) {
-        badgeHtml = '+3 Placar exato';
+        let pts = p.isCuringa ? 6 : 3;
+        badgeHtml = '+' + pts + ' Placar exato' + (p.isCuringa ? ' (⭐ 2x)' : '');
         badgeClass = 'badge-exact';
         borderColor = '#22c55e';
         
@@ -377,7 +400,8 @@ function renderBetResults(picks, officialResults) {
         (p.home < p.away && r.home < r.away) ||
         (p.home === p.away && r.home === r.away)
       ) {
-        badgeHtml = '+1 Vencedor';
+        let pts = p.isCuringa ? 2 : 1;
+        badgeHtml = '+' + pts + ' Vencedor' + (p.isCuringa ? ' (⭐ 2x)' : '');
         badgeClass = 'badge-winner';
         borderColor = '#3b82f6';
       } else {
@@ -412,6 +436,11 @@ async function loadUserData() {
     var pick = data.picks[matchId];
     document.querySelectorAll('#p-home-' + matchId).forEach(function(el) { el.value = pick.home; });
     document.querySelectorAll('#p-away-' + matchId).forEach(function(el) { el.value = pick.away; });
+    
+    if (pick.isCuringa && typeof updateCuringaUI === 'function') {
+      updateCuringaUI(matchId, true);
+    }
+
     // Mark cards with existing bets as bet-placed
     if (pick.home !== undefined && pick.away !== undefined) {
       document.querySelectorAll('.match-card[data-match-id="' + matchId + '"]').forEach(function(card) {
@@ -545,6 +574,14 @@ function updateBonusProgress() {
 
 // 8. AUTO-SAVE & BONUS SUBMIT
 function setupAutoSave() {
+  document.querySelector('.main-content').addEventListener('focusout', function(e) {
+    if (e.target.classList.contains('score-input')) {
+      if (e.target.value === '') {
+        e.target.value = '0';
+        e.target.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }
+  });
   document.querySelector('.main-content').addEventListener('change', async function(e) {
     if (e.target.classList.contains('score-input')) {
       var matchId = e.target.getAttribute('data-match');
@@ -566,6 +603,110 @@ function setupAutoSave() {
       }
     }
   });
+
+  let pendingCuringaMatchId = null;
+
+  window.toggleCuringa = async function(matchId) {
+    if (!currentUser) return alert("Faça login para usar o Curinga!");
+    var match = ALL_MATCHES.find(m => m.id === matchId);
+    var isMataMata = match.group === 'Mata-Mata';
+    
+    var myData = globalRanking.find(u => u.id === currentUser) || {picks:{}};
+    var picks = myData.picks || {};
+    
+    var usedCuringas = 0;
+    for (var k in picks) {
+      if (picks[k].isCuringa) {
+        var m = ALL_MATCHES.find(x => x.id === k);
+        if (m && (m.group === 'Mata-Mata') === isMataMata) usedCuringas++;
+      }
+    }
+    
+    var currentlyActive = picks[matchId] && picks[matchId].isCuringa;
+    
+    if (!currentlyActive && usedCuringas >= 1) {
+      alert("Você já usou seu Curinga nesta fase (1 para Grupos, 1 para Mata-Mata)!");
+      return;
+    }
+    
+    var hVal = document.getElementById('p-home-' + matchId).value;
+    var aVal = document.getElementById('p-away-' + matchId).value;
+    
+    if (hVal === '' || aVal === '') {
+      alert("Preencha o palpite antes de ativar o Curinga!");
+      return;
+    }
+    
+    if (!currentlyActive) {
+      pendingCuringaMatchId = matchId;
+      document.getElementById('curinga-match-names').innerText = match.home.name + ' vs ' + match.away.name;
+      document.getElementById('curinga-modal').classList.remove('hidden');
+    } else {
+      await dbAPI.savePick(currentUser, currentUserName, matchId, parseInt(hVal), parseInt(aVal), false);
+      updateCuringaUI(matchId, false);
+    }
+  };
+
+  document.addEventListener('click', async (e) => {
+    if (e.target.id === 'btn-exportar-palpites' || e.target.closest('#btn-exportar-palpites')) {
+      if (typeof exportPicksToImage === 'function') exportPicksToImage();
+      return;
+    }
+    
+    if (e.target.id === 'btn-curinga-cancel') {
+      document.getElementById('curinga-modal').classList.add('hidden');
+      pendingCuringaMatchId = null;
+    }
+    
+    if (e.target.id === 'btn-curinga-confirm') {
+      if (!pendingCuringaMatchId) return;
+      document.getElementById('curinga-modal').classList.add('hidden');
+      
+      var hVal = document.getElementById('p-home-' + pendingCuringaMatchId).value;
+      var aVal = document.getElementById('p-away-' + pendingCuringaMatchId).value;
+      
+      await dbAPI.savePick(currentUser, currentUserName, pendingCuringaMatchId, parseInt(hVal), parseInt(aVal), true);
+      updateCuringaUI(pendingCuringaMatchId, true);
+      pendingCuringaMatchId = null;
+    }
+  });
+
+  window.updateCuringaUI = function(matchId, isActive) {
+    var match = ALL_MATCHES.find(m => m.id === matchId);
+    if (!match) return;
+    var isMataMata = match.group === 'Mata-Mata';
+
+    document.querySelectorAll('#btn-curinga-' + matchId).forEach(btn => {
+      if (isActive) {
+        btn.innerHTML = '🌟 CURINGA ATIVADO 2x';
+        btn.style.color = '#000';
+        btn.style.backgroundColor = 'var(--accent-gold)';
+        btn.style.borderColor = 'var(--accent-gold)';
+        btn.style.transform = 'scale(1.05)';
+        btn.style.boxShadow = '0 0 15px var(--accent-gold)';
+        setTimeout(() => { btn.style.transform = 'scale(1)'; }, 300);
+      } else {
+        btn.innerHTML = '⭐ Usar Curinga 2x';
+        btn.style.color = '';
+        btn.style.backgroundColor = 'transparent';
+        btn.style.borderColor = '';
+        btn.style.boxShadow = 'none';
+        btn.style.transform = 'scale(1)';
+      }
+    });
+
+    ALL_MATCHES.forEach(m => {
+      if (m.id !== matchId && (m.group === 'Mata-Mata') === isMataMata) {
+        document.querySelectorAll('#btn-curinga-' + m.id).forEach(btn => {
+          if (isActive) {
+            btn.style.display = 'none';
+          } else {
+            btn.style.display = 'inline-block';
+          }
+        });
+      }
+    });
+  };
 
   // Manipulador para Confirmar Bônus
   document.addEventListener('click', async function(e) {
@@ -797,67 +938,115 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
-function renderComparativo(ranking, officialResults) {
-  var container = document.getElementById('comparativo-container');
-  if (!container) return;
-
-  var matchesWithResult = ALL_MATCHES.filter(m => officialResults[m.id] && officialResults[m.id].home !== undefined);
-  if (matchesWithResult.length === 0) {
-    container.innerHTML = '<div style="color:var(--text-secondary);text-align:center;padding:20px;">Nenhum jogo com resultado oficial ainda.</div>';
-    return;
-  }
+function initDueloSelects() {
+  const selA = document.getElementById('duelo-player-a');
+  const selB = document.getElementById('duelo-player-b');
+  if (!selA || !selB || !globalRanking) return;
   
-  // Ordenar por data decrescente (o mais recente primeiro nas colunas da esquerda)
-  matchesWithResult.sort((a, b) => b.date - a.date);
-  
-  var latestMatchId = matchesWithResult[0].id;
-
-  var html = '<div class="comparativo-wrapper"><table class="comparativo-table">';
-  
-  // Cabeçalho
-  html += '<thead><tr><th class="col-user">Participante</th>';
-  matchesWithResult.forEach(m => {
-    var isLatest = m.id === latestMatchId ? ' class="col-latest"' : '';
-    html += '<th' + isLatest + '><div style="font-size:12px;color:var(--text-muted);">' + m.home.name + ' vs ' + m.away.name + '</div><div style="font-size:18px;color:#fff;">' + officialResults[m.id].home + ' - ' + officialResults[m.id].away + '</div></th>';
-  });
-  html += '</tr></thead><tbody>';
-
-  // Linhas por usuário
-  ranking.forEach(user => {
-    var isMe = user.id === currentUser ? ' row-me' : '';
-    html += '<tr class="' + isMe + '">';
-    var avatarHtml = user.avatar ? '<img src="https://flagcdn.com/w20/' + user.avatar + '.png">' : '<span>👤</span>';
-    html += '<td class="col-user">' + avatarHtml + ' ' + user.name + '</td>';
-    
-    matchesWithResult.forEach(m => {
-      var p = (user.picks && user.picks[m.id]) ? user.picks[m.id] : {};
-      var r = officialResults[m.id];
-      var badgeClass = 'none';
-      
-      if (p.home !== undefined) {
-        if (p.home === r.home && p.away === r.away) {
-          badgeClass = 'exato';
-        } else if (
-          (p.home > p.away && r.home > r.away) ||
-          (p.home < p.away && r.home < r.away) ||
-          (p.home === p.away && r.home === r.away)
-        ) {
-          badgeClass = 'vencedor';
-        } else {
-          badgeClass = 'errou';
-        }
-      }
-      
-      var palpiteStr = p.home !== undefined ? p.home + ' - ' + p.away : '—';
-      var isLatest = m.id === latestMatchId ? ' class="col-latest"' : '';
-      html += '<td' + isLatest + '><span class="comp-badge ' + badgeClass + '">' + palpiteStr + '</span></td>';
+  if (selA.options.length === 0) {
+    let opts = '';
+    globalRanking.forEach(u => {
+      opts += `<option value="${u.id}">${u.name}</option>`;
     });
-    html += '</tr>';
-  });
-  
-  html += '</tbody></table></div>';
-  container.innerHTML = html;
+    selA.innerHTML = opts;
+    selB.innerHTML = opts;
+    
+    // Set default selected
+    if (globalRanking.length > 0) selA.selectedIndex = 0;
+    if (globalRanking.length > 1) selB.selectedIndex = 1;
+  }
 }
+
+window.renderDuelo = function() {
+  initDueloSelects();
+  
+  var container = document.getElementById('comparativo-container');
+  var selA = document.getElementById('duelo-player-a');
+  var selB = document.getElementById('duelo-player-b');
+  if (!container || !selA || !selB || !globalRanking) return;
+
+  var idA = selA.value;
+  var idB = selB.value;
+  var userA = globalRanking.find(u => u.id === idA);
+  var userB = globalRanking.find(u => u.id === idB);
+  
+  if (!userA || !userB) return;
+
+  // Calculando stats
+  var ptsA = userA.pts || 0;
+  var ptsB = userB.pts || 0;
+  var exA = userA.exato || 0;
+  var exB = userB.exato || 0;
+  var vecA = userA.vencedor || 0;
+  var vecB = userB.vencedor || 0;
+
+  var totalPts = Math.max(ptsA + ptsB, 1);
+  var pctPtsA = Math.round((ptsA / totalPts) * 100);
+  var pctPtsB = 100 - pctPtsA;
+
+  var totalEx = Math.max(exA + exB, 1);
+  var pctExA = Math.round((exA / totalEx) * 100);
+  var pctExB = 100 - pctExA;
+
+  var avatarA = userA.avatar ? `<img src="https://flagcdn.com/w80/${userA.avatar}.png" style="border-radius:8px; border:2px solid var(--border-subtle);">` : '<div style="font-size:3rem;">👤</div>';
+  var avatarB = userB.avatar ? `<img src="https://flagcdn.com/w80/${userB.avatar}.png" style="border-radius:8px; border:2px solid var(--border-subtle);">` : '<div style="font-size:3rem;">👤</div>';
+
+  var html = `
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:40px;">
+      <div style="text-align:center;">
+        ${avatarA}
+        <div style="font-size:1.5rem; font-weight:bold; color:var(--text-primary); margin-top:10px;">${userA.name}</div>
+      </div>
+      <div style="text-align:center;">
+        ${avatarB}
+        <div style="font-size:1.5rem; font-weight:bold; color:var(--text-primary); margin-top:10px;">${userB.name}</div>
+      </div>
+    </div>
+    
+    <div style="display:flex; flex-direction:column; gap:20px;">
+      <!-- Pontos -->
+      <div>
+        <div style="display:flex; justify-content:space-between; font-size:0.9rem; color:var(--text-secondary); margin-bottom:8px;">
+          <span>${ptsA} pts</span>
+          <span>PONTOS TOTAIS</span>
+          <span>${ptsB} pts</span>
+        </div>
+        <div style="display:flex; height:12px; border-radius:6px; overflow:hidden; background:var(--border-subtle);">
+          <div style="width:${pctPtsA}%; background:#3b82f6; transition:width 1s ease;"></div>
+          <div style="width:${pctPtsB}%; background:#ef4444; transition:width 1s ease;"></div>
+        </div>
+      </div>
+      
+      <!-- Placares Exatos -->
+      <div>
+        <div style="display:flex; justify-content:space-between; font-size:0.9rem; color:var(--text-secondary); margin-bottom:8px;">
+          <span>${exA}</span>
+          <span>PLACARES EXATOS</span>
+          <span>${exB}</span>
+        </div>
+        <div style="display:flex; height:12px; border-radius:6px; overflow:hidden; background:var(--border-subtle);">
+          <div style="width:${pctExA}%; background:#22c55e; transition:width 1s ease;"></div>
+          <div style="width:${pctExB}%; background:#eab308; transition:width 1s ease;"></div>
+        </div>
+      </div>
+
+      <!-- Vencedores -->
+      <div>
+        <div style="display:flex; justify-content:space-between; font-size:0.9rem; color:var(--text-secondary); margin-bottom:8px;">
+          <span>${vecA}</span>
+          <span>ACERTO DE VENCEDOR</span>
+          <span>${vecB}</span>
+        </div>
+        <div style="display:flex; height:12px; border-radius:6px; overflow:hidden; background:var(--border-subtle);">
+          <div style="width:${Math.round((vecA / Math.max(vecA+vecB, 1)) * 100)}%; background:#a855f7; transition:width 1s ease;"></div>
+          <div style="width:${Math.round((vecB / Math.max(vecA+vecB, 1)) * 100)}%; background:#f97316; transition:width 1s ease;"></div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  container.innerHTML = html;
+};
 
 // 10. HEADER STATUS — Redesenhado (substitui countdown confuso)
 function updateHeaderStatus() {
@@ -1153,6 +1342,10 @@ els.tabs.forEach(function(tab) {
     if (tab.getAttribute('data-target') === 'tab-perfil') {
       if (typeof updateDashboardProfile === 'function') updateDashboardProfile();
     }
+    
+    if (tab.getAttribute('data-target') === 'tab-comparativo') {
+      if (typeof renderDuelo === 'function') renderDuelo();
+    }
   });
 });
 
@@ -1264,7 +1457,7 @@ function updateDashboardProfile() {
   sortedMatches.forEach(function(m) {
     var r = globalOfficialResults[m.id];
     var p = picks[m.id];
-    if (r && r.status === 'finished' && p && p.home !== undefined) {
+    if (r && r.home !== undefined && p && p.home !== undefined) {
       jogosFinalizados++;
       
       // Points calculation for this match
@@ -1278,6 +1471,8 @@ function updateDashboardProfile() {
       ) {
         pts = 1;
       }
+      
+      if (p.isCuringa) pts *= 2;
       
       if (pts === 0) erros++;
 
@@ -1378,6 +1573,124 @@ function updateDashboardProfile() {
 
   document.getElementById('stats-time-sorte').innerHTML = tSorte ? getTeamName(tSorte) : '--';
   document.getElementById('stats-time-azar').innerHTML = tAzar ? getTeamName(tAzar) : '--';
+
+  // Animating the dashboard numbers
+  const dashPtsEl = document.getElementById('dash-pts');
+  const dashPosEl = document.getElementById('dash-pos');
+  if (dashPtsEl) {
+    animateValue(dashPtsEl, 0, myData.pts, 1000);
+  }
+  if (dashPosEl) {
+    const pos = globalRanking.findIndex(u => u.id === currentUser) + 1;
+    animateValue(dashPosEl, 100, pos, 1500); // from 100 to actual pos for drama
+  }
+
+  // Render Badges
+  const badgesContainer = document.getElementById('badges-container');
+  if (badgesContainer) {
+    badgesContainer.innerHTML = '';
+    const allPossibleBadges = [
+      { id: 'zebra', icon: '🦓', title: 'Zebra', desc: 'Acertou um placar com menos de 20% das apostas' },
+      { id: 'maria', icon: '🛡️', title: 'Seguidor', desc: 'Acertou placar com mais de 80% das apostas' },
+      { id: 'mae_dinah', icon: '🔮', title: 'Mãe Dináh', desc: 'Acertou 3 placares exatos seguidos' },
+      { id: 'pe_frio', icon: '🥶', title: 'Pé Frio', desc: 'Errou 5 palpites seguidos' },
+      { id: 'empate', icon: '🤝', title: 'Empate', desc: 'Acertou 3 empates exatos' },
+      { id: 'zero_zero', icon: '🍩', title: 'Zero a Zero', desc: 'Cravou um placar de 0x0' },
+      { id: 'goleada', icon: '💥', title: 'Goleada', desc: 'Placar exato em jogo com 4 gols ou mais' },
+      { id: 'curinga_exato', icon: '🌟', title: 'Curinga', desc: 'Placar exato usando Curinga 2x' },
+      { id: 'atirador', icon: '🎯', title: 'Atirador', desc: 'Acertou o vencedor de 10 jogos' },
+      { id: 'patriota', icon: '🏴', title: 'Patriota', desc: 'Cravou o placar da sua seleção' }
+    ];
+    
+    let userBadges = myData.badges || [];
+    let userBadgeIds = userBadges.map(b => b.id);
+    
+    allPossibleBadges.forEach(b => {
+       const isEarned = userBadgeIds.includes(b.id);
+       const bEl = document.createElement('div');
+       bEl.className = 'badge-item ' + (isEarned ? 'earned' : 'locked');
+       bEl.title = b.title;
+       bEl.style.cursor = 'pointer';
+       bEl.innerHTML = `<div class="badge-icon">${b.icon}</div><div class="badge-title" style="font-size: 0.75rem; margin-top: 4px;">${b.title}</div>`;
+       bEl.onclick = () => showToast(`**${b.title}**: ${b.desc}`);
+       badgesContainer.appendChild(bEl);
+    });
+  }
+}
+
+function showToast(msg) {
+  var container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    container.style = 'position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 10000; display: flex; flex-direction: column; gap: 10px; pointer-events: none;';
+    document.body.appendChild(container);
+  }
+  var toast = document.createElement('div');
+  toast.className = 'toast-msg';
+  // allow strong tags
+  toast.innerHTML = msg.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.classList.add('hide');
+    setTimeout(() => toast.remove(), 300);
+  }, 4000);
+}
+
+async function exportPicksToImage() {
+  if (!currentUser || !globalRanking) return;
+  const myData = globalRanking.find(u => u.id === currentUser);
+  if (!myData) return;
+  
+  const container = document.getElementById('export-container');
+  container.style.top = '0';
+  container.style.left = '0';
+  container.style.zIndex = '-100'; // kept hidden behind
+  
+  let html = `<h2 style="text-align:center; color:var(--accent-gold); margin-bottom:20px;">Palpites de ${myData.name}</h2>`;
+  html += `<div style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center;">`;
+  
+  ALL_MATCHES.forEach(m => {
+     const p = myData.picks[m.id];
+     if (p && p.home !== undefined) {
+        html += `<div style="background:#222; padding:10px; border-radius:8px; border:1px solid #444; width:140px; text-align:center;">
+          <div style="font-size:0.75rem; color:#aaa; margin-bottom:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${m.home.name} x ${m.away.name}</div>
+          <div style="display:flex; justify-content:center; align-items:center; gap:8px;">
+            <span style="font-weight:bold; font-size:1.2rem;">${p.home}</span>
+            <span style="color:#666; font-size:0.9rem;">-</span>
+            <span style="font-weight:bold; font-size:1.2rem;">${p.away}</span>
+          </div>
+          ${p.isCuringa ? '<div style="margin-top:5px; font-size:0.8rem; color:#ffd700;">⭐ Curinga 2x</div>' : ''}
+        </div>`;
+     }
+  });
+  html += `</div>`;
+  html += `<div style="text-align:center; margin-top:30px; font-size:1.1rem; color:#888;">Copa do Mundo 2026 - Bolão</div>`;
+  
+  container.innerHTML = html;
+  
+  try {
+    const btn = document.getElementById('btn-exportar-palpites');
+    const oldText = btn.innerHTML;
+    btn.innerHTML = '⏳ Gerando...';
+    
+    // Aguarda um pequeno timeout para o DOM renderizar as imagens off-screen
+    await new Promise(r => setTimeout(r, 500));
+    
+    const canvas = await html2canvas(container, { backgroundColor: '#111' });
+    const link = document.createElement('a');
+    link.download = 'meus_palpites_copa26.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    
+    btn.innerHTML = oldText;
+  } catch(e) {
+    console.error(e);
+    alert('Erro ao exportar imagem.');
+  } finally {
+    container.style.top = '-9999px';
+    container.style.left = '-9999px';
+  }
 }
 
 // =============================================
@@ -1427,6 +1740,88 @@ function renderBracket() {
   var container = document.getElementById('bracket-container');
   if (!container) return;
 
+  var results = globalOfficialResults || {};
+  var userPicks = globalPicks || {};
+
+  var advancingTeams = [];
+  var thirdPlaces = [];
+
+  GROUPS.forEach(function(group) {
+    var standings = {};
+    group.teams.forEach(function(tKey) {
+      standings[tKey] = { key: tKey, team: TEAM_MAP[tKey], p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 };
+    });
+
+    var groupMatches = ALL_MATCHES.filter(function(m) { return m.group === group.letter; });
+    groupMatches.forEach(function(m) {
+      var r = results[m.id];
+      if (!r || r.home === undefined) {
+         if (userPicks[m.id] && userPicks[m.id].home !== undefined) r = userPicks[m.id];
+      }
+      if (r && r.home !== undefined && r.away !== undefined) {
+        var homeKey = Object.keys(TEAM_MAP).find(k => TEAM_MAP[k].code === m.home.code);
+        var awayKey = Object.keys(TEAM_MAP).find(k => TEAM_MAP[k].code === m.away.code);
+        if (standings[homeKey] && standings[awayKey]) {
+          standings[homeKey].p++;
+          standings[awayKey].p++;
+          standings[homeKey].gf += r.home;
+          standings[homeKey].ga += r.away;
+          standings[awayKey].gf += r.away;
+          standings[awayKey].ga += r.home;
+          if (r.home > r.away) {
+            standings[homeKey].pts += 3;
+          } else if (r.home < r.away) {
+            standings[awayKey].pts += 3;
+          } else {
+            standings[homeKey].pts += 1;
+            standings[awayKey].pts += 1;
+          }
+        }
+      }
+    });
+
+    var sorted = Object.values(standings).sort(function(a, b) {
+      if (b.pts !== a.pts) return b.pts - a.pts;
+      var gdB = b.gf - b.ga;
+      var gdA = a.gf - a.ga;
+      if (gdB !== gdA) return gdB - gdA;
+      return b.gf - a.gf;
+    });
+
+    advancingTeams.push(sorted[0]);
+    advancingTeams.push(sorted[1]);
+    thirdPlaces.push(sorted[2]);
+  });
+
+  thirdPlaces.sort(function(a, b) {
+    if (b.pts !== a.pts) return b.pts - a.pts;
+    var gdB = b.gf - b.ga;
+    var gdA = a.gf - a.ga;
+    if (gdB !== gdA) return gdB - gdA;
+    return b.gf - a.gf;
+  });
+
+  for (var i = 0; i < 8; i++) {
+    advancingTeams.push(thirdPlaces[i]);
+  }
+
+  // Sort the 32 teams globally for bracket seeding
+  advancingTeams.sort(function(a, b) {
+    if (b.pts !== a.pts) return b.pts - a.pts;
+    var gdB = b.gf - b.ga;
+    var gdA = a.gf - a.ga;
+    if (gdB !== gdA) return gdB - gdA;
+    return b.gf - a.gf;
+  });
+
+  var seeds = [
+    [1, 32], [16, 17], [9, 24], [8, 25],
+    [4, 29], [13, 20], [12, 21], [5, 28],
+    [2, 31], [15, 18], [10, 23], [7, 26],
+    [3, 30], [14, 19], [11, 22], [6, 27]
+  ];
+
+  var html = '';
   var rounds = [
     { name: '16-Avos', matches: 16 },
     { name: 'Oitavas', matches: 8 },
@@ -1435,21 +1830,54 @@ function renderBracket() {
     { name: 'Final', matches: 1 }
   ];
 
-  var html = '';
+  let currentRoundTeams = [];
+  seeds.forEach(s => {
+    currentRoundTeams.push(advancingTeams[s[0]-1] || null);
+    currentRoundTeams.push(advancingTeams[s[1]-1] || null);
+  });
+
   rounds.forEach(function(r) {
     html += '<div class="bracket-column">';
     html += '<h3 style="text-align:center; color: var(--accent-gold); margin-bottom: 20px;">' + r.name + '</h3>';
+    
+    let nextRoundTeams = [];
+    
     for (var i = 0; i < r.matches; i++) {
-      html += '<div class="bracket-match">';
-      html += '<div style="display:flex; justify-content:space-between; margin-bottom:4px; padding-bottom:4px; border-bottom:1px solid #333;">';
-      html += '<span style="color:#aaa;">TBD</span><span style="font-weight:bold;">-</span>';
+      var t1 = currentRoundTeams[i*2];
+      var t2 = currentRoundTeams[i*2 + 1];
+      
+      html += '<div class="bracket-match" style="background:var(--bg-panel); border:1px solid var(--border-subtle); padding:10px; border-radius:8px; margin-bottom:16px;">';
+      
+      if (t1) {
+        html += '<div style="display:flex; justify-content:space-between; margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid #333;">';
+        html += '<div style="display:flex; align-items:center; gap:8px;"><img src="https://flagcdn.com/w20/' + t1.team.code + '.png" style="border-radius:2px;"> <span style="font-weight:bold;">' + t1.team.name + '</span></div>';
+        html += '</div>';
+      } else {
+        html += '<div style="display:flex; justify-content:space-between; margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid #333;"><span style="color:#aaa;">TBD</span></div>';
+      }
+
+      if (t2) {
+        html += '<div style="display:flex; justify-content:space-between;">';
+        html += '<div style="display:flex; align-items:center; gap:8px;"><img src="https://flagcdn.com/w20/' + t2.team.code + '.png" style="border-radius:2px;"> <span style="font-weight:bold;">' + t2.team.name + '</span></div>';
+        html += '</div>';
+      } else {
+         html += '<div style="display:flex; justify-content:space-between;"><span style="color:#aaa;">TBD</span></div>';
+      }
+      
       html += '</div>';
-      html += '<div style="display:flex; justify-content:space-between;">';
-      html += '<span style="color:#aaa;">TBD</span><span style="font-weight:bold;">-</span>';
-      html += '</div>';
-      html += '</div>';
+      
+      // We don't know who advances yet, so next round gets TBD
+      nextRoundTeams.push(null);
     }
     html += '</div>';
+    
+    // Preparation for next iteration
+    // The next round needs double the nulls so we can pull two teams per match
+    currentRoundTeams = [];
+    nextRoundTeams.forEach(() => {
+       currentRoundTeams.push(null);
+       currentRoundTeams.push(null);
+    });
   });
 
   container.innerHTML = html;
@@ -1515,8 +1943,22 @@ function initApp() {
     localStorage.setItem('official_results', JSON.stringify(officialResults));
     renderSidebarRanking(ranking);
     renderFullRanking();
-    renderComparativo(ranking, officialResults);
+    if (typeof renderDuelo === 'function') renderDuelo();
     renderGroups();
+    
+    if (currentUser) {
+       const myData = globalRanking.find(u => u.id === currentUser);
+       if (myData) {
+          const streakBadge = document.getElementById('hot-streak-badge');
+          const streakCount = document.getElementById('hot-streak-count');
+          if (myData.currentHitStreak >= 3) {
+             streakBadge.classList.remove('hidden');
+             streakCount.innerText = myData.currentHitStreak;
+          } else {
+             streakBadge.classList.add('hidden');
+          }
+       }
+    }
     
     // Atualiza modal se estiver aberto
     if (typeof updateLiveTab === 'function') {
