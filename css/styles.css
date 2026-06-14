@@ -2236,6 +2236,125 @@ h1, h2, h3, h4, .condensed {
   background-clip: padding-box, border-box;
   box-shadow: 0 0 15px rgba(254, 223, 0, 0.4);
 }
+
+/* Tema: Special One */
+.trophy-unlocked[data-id="special_one"] {
+  border-color: #FFD700;
+  box-shadow: 0 0 25px rgba(255, 215, 0, 0.8);
+  background: linear-gradient(180deg, #1a1a2e 0%, rgba(255, 215, 0, 0.1) 100%);
+}
+
+/* Tema: Em Chamas */
+.trophy-unlocked[data-id="em_chamas"] {
+  border: 2px solid transparent;
+  background-image: linear-gradient(#1a1a2e, #1a1a2e), linear-gradient(135deg, #ff4500, #ffa500, #ff4500);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  box-shadow: 0 0 20px rgba(255, 69, 0, 0.7);
+}
+
+/* Tema: Fiel */
+.trophy-unlocked[data-id="fiel"] {
+  border: 2px solid transparent;
+  background-image: linear-gradient(#1a1a2e, #1a1a2e), linear-gradient(90deg, #009b3a, #fedf00, #002776);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  box-shadow: 0 0 15px rgba(0, 155, 58, 0.5);
+}
+
+/* Tema: Empatador */
+.trophy-unlocked[data-id="empatador"] {
+  border-color: #888888;
+  box-shadow: 0 0 15px rgba(136, 136, 136, 0.5);
+}
+
+/* Tema: Líder */
+.trophy-unlocked[data-id="lider"] {
+  border-color: #DAA520;
+  box-shadow: 0 0 20px rgba(218, 165, 32, 0.7);
+  background: linear-gradient(180deg, #1a1a2e 0%, rgba(218, 165, 32, 0.15) 100%);
+}
+
+/* Tema: Conservador */
+.trophy-unlocked[data-id="conservador"] {
+  border-color: #4682B4;
+  box-shadow: 0 0 15px rgba(70, 130, 180, 0.5);
+}
+
+/* Tema: Virada Épica */
+.trophy-unlocked[data-id="virada_epica"] {
+  border: 2px solid transparent;
+  background-image: linear-gradient(#1a1a2e, #1a1a2e), linear-gradient(to top, #ff0000, #ffff00);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  box-shadow: 0 0 20px rgba(255, 100, 0, 0.6);
+}
+
+/* Tema: Anarquista */
+.trophy-unlocked[data-id="anarquista"] {
+  border: 2px dashed #9400D3;
+  box-shadow: 0 0 15px rgba(148, 0, 211, 0.5);
+}
+
+/* Tema: Craque da Rodada */
+.trophy-unlocked[data-id="craque_rodada"] {
+  border-color: #FFFF00;
+  box-shadow: 0 0 25px rgba(255, 255, 0, 0.8);
+}
+
+/* Tema: Alienígena */
+.trophy-unlocked[data-id="alienigena"] {
+  border-color: #39FF14;
+  box-shadow: 0 0 20px rgba(57, 255, 20, 0.7);
+  background: linear-gradient(180deg, #1a1a2e 0%, rgba(57, 255, 20, 0.1) 100%);
+}
+
+/* Tema: Vice Eterno */
+.trophy-unlocked[data-id="vice_eterno"] {
+  border-color: #C0C0C0;
+  box-shadow: 0 0 15px rgba(192, 192, 192, 0.6);
+  background: linear-gradient(180deg, #1a1a2e 0%, rgba(192, 192, 192, 0.1) 100%);
+}
+
+/* Tema: Goleiro */
+.trophy-unlocked[data-id="goleiro"] {
+  border-color: #E0FFFF;
+  box-shadow: 0 0 15px rgba(224, 255, 255, 0.6);
+}
+
+/* Tema: Hat-trick */
+.trophy-unlocked[data-id="hat_trick"] {
+  border: 2px dotted #FFFFFF;
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+}
+
+/* Tema: Telepata */
+.trophy-unlocked[data-id="telepata"] {
+  border-color: #FF1493;
+  box-shadow: 0 0 20px rgba(255, 20, 147, 0.6);
+}
+
+/* Tema: Campeão Antecipado */
+.trophy-unlocked[data-id="campeao_antecipado"] {
+  border: 2px solid transparent;
+  background-image: linear-gradient(#1a1a2e, #1a1a2e), linear-gradient(45deg, #FFD700, #FFA500, #FFD700);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  box-shadow: 0 0 25px rgba(255, 215, 0, 0.8);
+}
+
+/* Tema: Azarado */
+.trophy-unlocked[data-id="azarado"] {
+  border-color: #A52A2A;
+  box-shadow: 0 0 15px rgba(165, 42, 42, 0.5);
+}
+
+/* Tema: Igual ao ChatGPT */
+.trophy-unlocked[data-id="igual_chatgpt"] {
+  border-color: #00FFFF;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.7);
+  background: linear-gradient(180deg, #1a1a2e 0%, rgba(0, 255, 255, 0.1) 100%);
+}
 /* GOAL NOTIFICATION */
 .goal-notification {
   position: fixed;
