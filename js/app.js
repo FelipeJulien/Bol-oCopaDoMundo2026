@@ -1046,6 +1046,82 @@ window.renderDuelo = function() {
   `;
 
   container.innerHTML = html;
+
+  if (typeof renderPastGamesPicks === 'function') {
+    renderPastGamesPicks();
+  }
+};
+
+window.renderPastGamesPicks = function() {
+  var thead = document.getElementById('past-picks-thead');
+  var tbody = document.getElementById('past-picks-tbody');
+  if (!thead || !tbody || !globalRanking || !ALL_MATCHES || !globalOfficialResults) return;
+
+  var displayRanking = globalRanking.filter(u => Object.keys(u.picks || {}).length > 0 || u.pts > 0);
+  
+  var theadHtml = `<tr style="background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--border-subtle);">
+    <th style="padding: 12px 16px; color: var(--text-muted); text-align: left; min-width: 200px; position: sticky; left: 0; background: var(--bg-card); z-index: 2;">Jogo</th>
+    <th style="padding: 12px 16px; color: var(--text-muted); text-align: center; min-width: 100px;">Resultado</th>`;
+  
+  displayRanking.forEach(u => {
+    var avatar = u.avatar ? `<img src="https://flagcdn.com/w20/${u.avatar}.png" style="vertical-align: middle; margin-right: 4px; border-radius: 2px;">` : '';
+    theadHtml += `<th style="padding: 12px 16px; color: var(--text-muted); text-align: center; font-size: 0.85rem; min-width: 100px;">${avatar}${(u.nickname || u.name)}</th>`;
+  });
+  theadHtml += `</tr>`;
+  thead.innerHTML = theadHtml;
+
+  var matchesWithResult = ALL_MATCHES.filter(m => globalOfficialResults[m.id] && globalOfficialResults[m.id].home !== undefined);
+  matchesWithResult.sort((a, b) => b.date - a.date);
+
+  var tbodyHtml = '';
+  if (matchesWithResult.length === 0) {
+    tbodyHtml = `<tr><td colspan="${2 + displayRanking.length}" style="text-align: center; padding: 20px; color: var(--text-muted);">Nenhum jogo finalizado ainda.</td></tr>`;
+  } else {
+    matchesWithResult.forEach(m => {
+      var res = globalOfficialResults[m.id];
+      tbodyHtml += `<tr style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-card);">`;
+      
+      var homeTeam = TEAM_MAP[m.home] ? TEAM_MAP[m.home].name : m.home;
+      var awayTeam = TEAM_MAP[m.away] ? TEAM_MAP[m.away].name : m.away;
+      var homeFlag = TEAM_MAP[m.home] ? `<img src="${TEAM_MAP[m.home].flag}" style="width: 20px; vertical-align: middle;">` : '';
+      var awayFlag = TEAM_MAP[m.away] ? `<img src="${TEAM_MAP[m.away].flag}" style="width: 20px; vertical-align: middle;">` : '';
+
+      tbodyHtml += `<td style="padding: 12px 16px; position: sticky; left: 0; background: var(--bg-card); z-index: 1;">
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem;">
+          ${homeFlag} <span>${homeTeam}</span> <span style="color: var(--text-muted);">x</span> <span>${awayTeam}</span> ${awayFlag}
+        </div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">${formatDate(m.date)}</div>
+      </td>`;
+      
+      tbodyHtml += `<td style="padding: 12px 16px; text-align: center; font-weight: bold; color: var(--text-primary);">${res.home} x ${res.away}</td>`;
+      
+      displayRanking.forEach(u => {
+        var p = (u.picks && u.picks[m.id]) ? u.picks[m.id] : null;
+        if (!p || p.home === undefined) {
+          tbodyHtml += `<td style="padding: 12px 16px; text-align: center; color: var(--text-muted);">-</td>`;
+        } else {
+          var pts = 0;
+          if (p.home === res.home && p.away === res.away) pts = 3;
+          else if (
+            (p.home > p.away && res.home > res.away) ||
+            (p.home < p.away && res.home < res.away) ||
+            (p.home === p.away && res.home === res.away)
+          ) pts = 1;
+
+          var color = 'var(--text-secondary)';
+          var fontWeight = 'normal';
+          if (pts === 3) { color = '#22c55e'; fontWeight = 'bold'; }
+          else if (pts === 1) { color = '#a855f7'; fontWeight = 'bold'; }
+          else { color = '#ef4444'; }
+
+          var curingaStr = p.isCuringa ? ' <span style="color: var(--accent-gold); font-size: 0.8rem;" title="Curinga">★</span>' : '';
+          tbodyHtml += `<td style="padding: 12px 16px; text-align: center; color: ${color}; font-weight: ${fontWeight};">${p.home} x ${p.away}${curingaStr}</td>`;
+        }
+      });
+      tbodyHtml += `</tr>`;
+    });
+  }
+  tbody.innerHTML = tbodyHtml;
 };
 
 // 10. HEADER STATUS — Redesenhado (substitui countdown confuso)
@@ -1554,7 +1630,7 @@ function updateDashboardProfile() {
   var ctxPizza = document.getElementById('chart-pizza-acertos');
   if (ctxPizza) {
     if (profileChartPizza) profileChartPizza.destroy();
-    profileChartPizza = new Chart(ctxPizza, {
+    try { profileChartPizza = new Chart(ctxPizza, {
       type: 'doughnut',
       data: {
         labels: ['Placar Exato (+3)', 'Vencedor (+1)', 'Erros (+0)'],
@@ -1577,7 +1653,7 @@ function updateDashboardProfile() {
   var ctxLinha = document.getElementById('chart-linha-evolucao');
   if (ctxLinha && evolutionData.length > 0) {
     if (profileChartLinha) profileChartLinha.destroy();
-    profileChartLinha = new Chart(ctxLinha, {
+    try { profileChartLinha = new Chart(ctxLinha, {
       type: 'line',
       data: {
         labels: evolutionData.map((d, idx) => 'Jogo ' + (idx + 1)), // idx
@@ -1629,11 +1705,11 @@ function updateDashboardProfile() {
   const dashPtsEl = document.getElementById('dash-pts');
   const dashPosEl = document.getElementById('dash-pos');
   if (dashPtsEl) {
-    animateValue(dashPtsEl, 0, myData.pts, 1000);
+    animateValue(dashPtsEl, 0, myData.pts || 0, 1000);
   }
   if (dashPosEl) {
-    var dRank = globalRanking.filter(u => Object.keys(u.picks || {}).length > 0); const pos = dRank.findIndex(u => u.id === currentUser) + 1;
-    animateValue(dashPosEl, 100, pos, 1500); // from 100 to actual pos for drama
+    var dRank = globalRanking.filter(u => Object.keys(u.picks || {}).length > 0 || u.pts > 0); const pos = dRank.findIndex(u => u.id === currentUser) + 1;
+    animateValue(dashPosEl, 100, pos > 0 ? pos : 0, 1500); // from 100 to actual pos for drama
   }
 
   // Render Badges (Dashboard Profil)
@@ -2076,7 +2152,7 @@ document.addEventListener('DOMContentLoaded', function() {
       btnSaveNickname.addEventListener('click', async function() {
         var newNick = document.getElementById('input-nickname').value.trim();
         if (newNick.length > 15) {
-          alert('O apelido deve ter no m�ximo 15 caracteres.');
+          alert('O apelido deve ter no m�ximo 15 caracteres.');
           return;
         }
         
