@@ -1064,15 +1064,26 @@ window.renderPastGamesPicks = function() {
   theadHtml += `</tr>`;
   thead.innerHTML = theadHtml;
 
-  var matchesWithResult = ALL_MATCHES.filter(m => globalOfficialResults[m.id] && globalOfficialResults[m.id].home !== undefined);
+  var agora = new Date();
+  var matchesWithResult = ALL_MATCHES.filter(m => {
+    var res = globalOfficialResults[m.id];
+    var hasResult = res && res.home !== undefined && res.home !== '';
+    return hasResult || m.date <= agora;
+  });
   matchesWithResult.sort((a, b) => b.date - a.date);
 
   var tbodyHtml = '';
   if (matchesWithResult.length === 0) {
-    tbodyHtml = `<tr><td colspan="${2 + displayRanking.length}" style="text-align: center; padding: 20px; color: var(--text-muted);">Nenhum jogo finalizado ainda.</td></tr>`;
+    tbodyHtml = `<tr><td colspan="${2 + displayRanking.length}" style="text-align: center; padding: 20px; color: var(--text-muted);">Nenhum jogo finalizado ou em andamento ainda.</td></tr>`;
   } else {
     matchesWithResult.forEach(m => {
-      var res = globalOfficialResults[m.id];
+      var res = globalOfficialResults[m.id] || {};
+      var hasResult = res.home !== undefined && res.home !== '';
+      var isFinished = false;
+      if (res.status === 'finished') isFinished = true;
+      else if (agora > new Date(m.date.getTime() + 135 * 60 * 1000)) isFinished = true;
+      else if (hasResult) isFinished = true; // Fallback to assume finished if has result
+
       tbodyHtml += `<tr style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-card);">`;
       
       var homeTeam = m.home.name;
@@ -1087,7 +1098,10 @@ window.renderPastGamesPicks = function() {
         <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">${formatDate(m.date)}</div>
       </td>`;
       
-      tbodyHtml += `<td style="padding: 12px 16px; text-align: center; font-weight: bold; color: var(--text-primary);">${res.home} x ${res.away}</td>`;
+      var placarOficial = hasResult ? `${res.home} x ${res.away}` : 'Ao vivo';
+      if (!hasResult && isFinished) placarOficial = 'Aguardando';
+
+      tbodyHtml += `<td style="padding: 12px 16px; text-align: center; font-weight: bold; color: var(--text-primary);">${placarOficial}</td>`;
       
       displayRanking.forEach(u => {
         var p = (u.picks && u.picks[m.id]) ? u.picks[m.id] : null;
@@ -1095,20 +1109,29 @@ window.renderPastGamesPicks = function() {
           tbodyHtml += `<td style="padding: 12px 16px; text-align: center; color: var(--text-muted);">-</td>`;
         } else {
           var pts = 0;
-          if (p.home === res.home && p.away === res.away) pts = 3;
-          else if (
-            (p.home > p.away && res.home > res.away) ||
-            (p.home < p.away && res.home < res.away) ||
-            (p.home === p.away && res.home === res.away)
-          ) pts = 1;
+          if (hasResult) {
+            if (p.home === res.home && p.away === res.away) pts = 3;
+            else if (
+              (p.home > p.away && res.home > res.away) ||
+              (p.home < p.away && res.home < res.away) ||
+              (p.home === p.away && res.home === res.away)
+            ) pts = 1;
+          }
 
           var color = 'var(--text-secondary)';
           var fontWeight = 'normal';
-          if (pts === 3) { color = '#22c55e'; fontWeight = 'bold'; }
-          else if (pts === 1) { color = '#a855f7'; fontWeight = 'bold'; }
-          else { color = '#ef4444'; }
+          if (hasResult) {
+            if (pts === 3) { color = '#22c55e'; fontWeight = 'bold'; }
+            else if (pts === 1) { color = '#a855f7'; fontWeight = 'bold'; }
+            else { color = '#ef4444'; }
+          } else {
+            color = 'var(--text-primary)';
+          }
 
-          var curingaStr = p.isCuringa ? ' <span style="color: var(--accent-gold); font-size: 0.8rem;" title="Curinga">★</span>' : '';
+          var isOwnPick = (typeof currentUser !== 'undefined' && u.id === currentUser);
+          var showCuringa = isFinished || isOwnPick;
+          var curingaStr = (p.isCuringa && showCuringa) ? ' <span style="color: var(--accent-gold); font-size: 0.8rem;" title="Curinga">★</span>' : '';
+          
           tbodyHtml += `<td style="padding: 12px 16px; text-align: center; color: ${color}; font-weight: ${fontWeight};">${p.home} x ${p.away}${curingaStr}</td>`;
         }
       });
