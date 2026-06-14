@@ -801,13 +801,7 @@ function renderSidebarRanking(ranking) { ranking = ranking.filter(u => Object.ke
     html += '<div class="rank-pos">' + (idx + 1) + 'º</div>';
     html += renderAvatar(u.avatar, (u.nickname || u.name));
     
-    // Render Badges
-    var badgesHtml = '';
-    if (u.badges && u.badges.length > 0) {
-      badgesHtml = '<span style="margin-left: 6px; font-size: 0.9rem;" title="' + u.badges.map(b => b.title).join(', ') + '">' + u.badges.map(b => b.icon).join('') + '</span>';
-    }
-
-    html += '<div class="rank-name">' + (u.nickname || u.name) + badgesHtml + '</div>';
+    html += '<div class="rank-name">' + (u.nickname || u.name) + '</div>';
     html += '<div class="rank-pts">' + u.pts + ' pts</div>';
     html += '</div>';
   });
@@ -1322,13 +1316,7 @@ function renderFullRanking() {
       html += '<div class="avatar-placeholder" style="width:24px; height:24px; font-size:10px;">A</div>';
     }
     
-    // Render Badges
-    var badgesHtml = '';
-    if (u.badges && u.badges.length > 0) {
-      badgesHtml = '<span style="margin-left: 8px; font-size: 1.1rem; cursor: help;" title="' + u.badges.map(b => b.title).join(', ') + '">' + u.badges.map(b => b.icon).join(' ') + '</span>';
-    }
-
-    html += '<span>' + ((u.nickname || u.name) || 'Anônimo') + (isMe ? ' (Você)' : '') + badgesHtml + '</span></td>';
+    html += '<span>' + ((u.nickname || u.name) || 'Anônimo') + (isMe ? ' (Você)' : '') + '</span></td>';
     html += '<td style="padding: 12px 16px; text-align: center; color: var(--text-muted);">' + (u.exato||0) + '</td>';
     html += '<td style="padding: 12px 16px; text-align: center; color: var(--text-muted);">' + (u.vencedor||0) + '</td>';
     html += '<td style="padding: 12px 16px; text-align: right; color: var(--accent-gold); font-size: 1.1rem; font-weight: bold;">' + u.pts + ' PTS</td>';
@@ -1559,6 +1547,57 @@ function renderSalaTrofeus(myData) {
     const totalCount = ALL_POSSIBLE_BADGES.length;
     progressText.innerText = `${earnedCount}/${totalCount} conquistas desbloqueadas`;
     progressFill.style.width = `${(earnedCount / totalCount) * 100}%`;
+  }
+
+  const userTrophiesContainer = document.getElementById('user-trophies-container');
+  if (userTrophiesContainer) {
+    userTrophiesContainer.innerHTML = '';
+    const usersWithBadges = globalRanking.filter(u => u.badges && u.badges.length > 0);
+    
+    // Opcional: ordenar por quantidade de troféus (quem tem mais primeiro)
+    usersWithBadges.sort((a, b) => b.badges.length - a.badges.length);
+
+    usersWithBadges.forEach(u => {
+      const card = document.createElement('div');
+      card.style.cssText = 'background: rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; border: 1px solid rgba(255,255,255,0.1);';
+      
+      const header = document.createElement('div');
+      header.style.cssText = 'display: flex; align-items: center; gap: 12px; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px;';
+      
+      const avatarHtml = u.flag 
+        ? `<img src="https://flagcdn.com/w40/${u.flag}.png" style="width: 32px; height: 21px; border-radius: 2px;" alt="Bandeira">`
+        : renderAvatar(u.avatar, (u.nickname || u.name));
+
+      const badgesCount = u.badges.length;
+      header.innerHTML = `
+        ${avatarHtml}
+        <div>
+          <div style="font-weight: bold; font-size: 1.1rem; color: #fff;">${u.nickname || u.name}</div>
+          <div style="font-size: 0.85rem; color: #aaa;">${badgesCount} troféu${badgesCount > 1 ? 's' : ''}</div>
+        </div>
+      `;
+
+      const badgesContainer = document.createElement('div');
+      badgesContainer.style.cssText = 'display: flex; flex-wrap: wrap; gap: 8px;';
+      
+      u.badges.forEach(b => {
+        const badgeEl = document.createElement('div');
+        badgeEl.style.cssText = 'background: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: 8px; font-size: 1.2rem; cursor: help; border: 1px solid rgba(255,215,0,0.2); transition: transform 0.2s;';
+        badgeEl.title = `${b.title} - ${b.desc}`;
+        badgeEl.innerText = b.icon;
+        badgeEl.onmouseover = () => badgeEl.style.transform = 'scale(1.1)';
+        badgeEl.onmouseout = () => badgeEl.style.transform = 'scale(1)';
+        badgesContainer.appendChild(badgeEl);
+      });
+
+      card.appendChild(header);
+      card.appendChild(badgesContainer);
+      userTrophiesContainer.appendChild(card);
+    });
+    
+    if (usersWithBadges.length === 0) {
+      userTrophiesContainer.innerHTML = '<div style="color: #aaa; grid-column: 1 / -1; text-align: center; padding: 24px;">Nenhum jogador conquistou troféus ainda.</div>';
+    }
   }
 }
 
