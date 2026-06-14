@@ -1564,9 +1564,15 @@ function renderSalaTrofeus(myData) {
       const header = document.createElement('div');
       header.style.cssText = 'display: flex; align-items: center; gap: 12px; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px;';
       
-      const avatarHtml = u.flag 
-        ? `<img src="https://flagcdn.com/w40/${u.flag}.png" style="width: 32px; height: 21px; border-radius: 2px;" alt="Bandeira">`
-        : renderAvatar(u.avatar, (u.nickname || u.name));
+      let avatarHtml = '';
+      if (u.flag) {
+        avatarHtml = `<img src="https://flagcdn.com/w40/${u.flag}.png" style="width: 32px; height: 21px; border-radius: 2px; object-fit: cover;" alt="Bandeira">`;
+      } else if (u.avatar) {
+        avatarHtml = `<img src="https://flagcdn.com/h40/${u.avatar}.png" style="width: 32px; height: 21px; border-radius: 2px; object-fit: cover;" alt="Bandeira">`;
+      } else {
+        const initial = (u.nickname || u.name || 'A').charAt(0).toUpperCase();
+        avatarHtml = `<div style="width: 32px; height: 32px; border-radius: 50%; background: #333; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; border: 1px solid rgba(255,255,255,0.1);">${initial}</div>`;
+      }
 
       const badgesCount = u.badges.length;
       header.innerHTML = `
