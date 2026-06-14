@@ -1081,10 +1081,10 @@ window.renderPastGamesPicks = function() {
       var res = globalOfficialResults[m.id];
       tbodyHtml += `<tr style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-card);">`;
       
-      var homeTeam = TEAM_MAP[m.home] ? TEAM_MAP[m.home].name : m.home;
-      var awayTeam = TEAM_MAP[m.away] ? TEAM_MAP[m.away].name : m.away;
-      var homeFlag = TEAM_MAP[m.home] ? `<img src="${TEAM_MAP[m.home].flag}" style="width: 20px; vertical-align: middle;">` : '';
-      var awayFlag = TEAM_MAP[m.away] ? `<img src="${TEAM_MAP[m.away].flag}" style="width: 20px; vertical-align: middle;">` : '';
+      var homeTeam = m.home.name;
+      var awayTeam = m.away.name;
+      var homeFlag = `<img src="https://flagcdn.com/w20/${m.home.code}.png" style="width: 20px; vertical-align: middle;">`;
+      var awayFlag = `<img src="https://flagcdn.com/w20/${m.away.code}.png" style="width: 20px; vertical-align: middle;">`;
 
       tbodyHtml += `<td style="padding: 12px 16px; position: sticky; left: 0; background: var(--bg-card); z-index: 1;">
         <div style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem;">
