@@ -1646,7 +1646,7 @@ function updateDashboardProfile() {
           legend: { position: 'bottom', labels: { color: '#ccc' } }
         }
       }
-    });
+    }); } catch(e) { console.error(e); }
   }
 
   // Render Linha (Evolução)
@@ -1677,7 +1677,7 @@ function updateDashboardProfile() {
           y: { ticks: { color: '#888' }, grid: { color: '#333' }, beginAtZero: true }
         }
       }
-    });
+    }); } catch(e) { console.error(e); }
   }
 
   // Time da Sorte / Azar
