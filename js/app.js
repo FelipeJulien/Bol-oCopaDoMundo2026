@@ -1503,7 +1503,7 @@ const ALL_POSSIBLE_BADGES = [
   { id: 'patriota', icon: '🏴', title: 'Patriota', desc: 'Cravou o placar da sua seleção' },
   { id: 'special_one', icon: '👑', title: 'Special One', desc: 'Único a acertar um placar exato' },
   { id: 'em_chamas', icon: '🔥', title: 'Em Chamas', desc: 'Acertou o vencedor de 5 jogos seguidos' },
-  { id: 'fiel', icon: '忠', title: 'Fiel', desc: 'Sempre apostou no Brasil para vencer' },
+  { id: 'fiel', icon: '🦅', title: 'Fiel', desc: 'Sempre apostou no Brasil para vencer' },
   { id: 'empatador', icon: '⚖️', title: 'Empatador', desc: 'Apostou em empate mais de 10 vezes' },
   { id: 'lider', icon: '🥇', title: 'Líder', desc: 'Ficou em 1º no ranking por várias rodadas' },
   { id: 'conservador', icon: '🔒', title: 'Conservador', desc: '80%+ dos palpites foram em vitórias do favorito' },
