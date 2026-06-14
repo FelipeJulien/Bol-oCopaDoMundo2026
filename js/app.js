@@ -1512,7 +1512,8 @@ const ALL_POSSIBLE_BADGES = [
   { id: 'goleada', icon: '💥', title: 'Goleada', desc: 'Placar exato em jogo com 4 gols ou mais' },
   { id: 'curinga_exato', icon: '🌟', title: 'Curinga', desc: 'Placar exato usando Curinga 2x' },
   { id: 'atirador', icon: '🎯', title: 'Atirador', desc: 'Acertou o vencedor de 10 jogos' },
-  { id: 'patriota', icon: '🏴', title: 'Patriota', desc: 'Cravou o placar da sua seleção' }
+  { id: 'patriota', icon: '🏴', title: 'Patriota', desc: 'Cravou o placar da sua seleção' },
+  { id: 'special_one', icon: '👑', title: 'Special One', desc: 'Único a acertar um placar exato' }
 ];
 
 function renderSalaTrofeus(myData) {

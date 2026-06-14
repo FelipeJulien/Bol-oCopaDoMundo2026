@@ -565,6 +565,7 @@ const dbAPI = {
             let hasCuringaExato = false;
             let uniqueWinnerHits = new Set();
             let hasPatriota = false;
+            let hasSpecialOne = false;
 
             userFinishedMatches.forEach(function(um) {
               if (um.exact) {
@@ -589,6 +590,13 @@ const dbAPI = {
               if (um.exact && um.pick.isCuringa) hasCuringaExato = true;
               if (um.winner) uniqueWinnerHits.add(um.match.id);
               
+              if (um.exact) {
+                const scoreStr = um.pick.home + 'x' + um.pick.away;
+                if (allPicksByMatch[um.match.id] && allPicksByMatch[um.match.id].scores[scoreStr] === 1) {
+                  hasSpecialOne = true;
+                }
+              }
+              
               if (userData.avatar_bandeira && um.exact) {
                  if (um.match.home.code === userData.avatar_bandeira || um.match.away.code === userData.avatar_bandeira) {
                     hasPatriota = true;
@@ -611,6 +619,16 @@ const dbAPI = {
               }
             });
 
+            // Save Patriota if earned so it persists even if avatar changes
+            if (hasPatriota && (!userData.manualBadges || !userData.manualBadges.includes('patriota'))) {
+              db.collection('users').doc(userDoc.id).update({
+                manualBadges: firebase.firestore.FieldValue.arrayUnion('patriota')
+              }).catch(e => console.error("Erro ao salvar Patriota:", e));
+              
+              if (!userData.manualBadges) userData.manualBadges = [];
+              userData.manualBadges.push('patriota');
+            }
+
             // Badges Calculation
             const ALL_POSSIBLE_BADGES = {
               'zebra': { id: 'zebra', icon: '🦓', title: 'Zebra (Acertou placar com menos de 20% das apostas)' },
@@ -622,7 +640,8 @@ const dbAPI = {
               'goleada': { id: 'goleada', icon: '💥', title: 'Goleada Mágica (Acertou placar exato de jogo com 4+ gols)' },
               'curinga_exato': { id: 'curinga_exato', icon: '🌟', title: 'Milagre do Curinga (Cravou placar usando multiplicador)' },
               'atirador': { id: 'atirador', icon: '🎯', title: 'Atirador de Elite (Acertou 10 jogos no campeonato)' },
-              'patriota': { id: 'patriota', icon: '🏴', title: 'Patriota (Cravou o placar da sua seleção)' }
+              'patriota': { id: 'patriota', icon: '🏴', title: 'Patriota (Cravou o placar da sua seleção)' },
+              'special_one': { id: 'special_one', icon: '👑', title: 'Special One (Único a acertar um placar exato)' }
             };
 
             let userBadgesMap = new Map();
@@ -645,6 +664,7 @@ const dbAPI = {
             if (hasCuringaExato) userBadgesMap.set('curinga_exato', ALL_POSSIBLE_BADGES['curinga_exato']);
             if (uniqueWinnerHits.size >= 10) userBadgesMap.set('atirador', ALL_POSSIBLE_BADGES['atirador']);
             if (hasPatriota) userBadgesMap.set('patriota', ALL_POSSIBLE_BADGES['patriota']);
+            if (hasSpecialOne) userBadgesMap.set('special_one', ALL_POSSIBLE_BADGES['special_one']);
 
             let badges = Array.from(userBadgesMap.values());
 
