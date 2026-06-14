@@ -1128,9 +1128,7 @@ window.renderPastGamesPicks = function() {
             color = 'var(--text-primary)';
           }
 
-          var isOwnPick = (typeof currentUser !== 'undefined' && u.id === currentUser);
-          var showCuringa = isFinished || isOwnPick;
-          var curingaStr = (p.isCuringa && showCuringa) ? ' <span style="color: var(--accent-gold); font-size: 0.8rem;" title="Curinga">★</span>' : '';
+          var curingaStr = ''; // Removido temporariamente para testes
           
           tbodyHtml += `<td style="padding: 12px 16px; text-align: center; color: ${color}; font-weight: ${fontWeight};">${p.home} x ${p.away}${curingaStr}</td>`;
         }
