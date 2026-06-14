@@ -1510,10 +1510,26 @@ const ALL_POSSIBLE_BADGES = [
   { id: 'empate', icon: '🤝', title: 'Empate', desc: 'Acertou 3 empates exatos' },
   { id: 'zero_zero', icon: '🍩', title: 'Zero a Zero', desc: 'Cravou um placar de 0x0' },
   { id: 'goleada', icon: '💥', title: 'Goleada', desc: 'Placar exato em jogo com 4 gols ou mais' },
-  { id: 'curinga_exato', icon: '🌟', title: 'Curinga', desc: 'Placar exato usando Curinga 2x' },
-  { id: 'atirador', icon: '🎯', title: 'Atirador', desc: 'Acertou o vencedor de 10 jogos' },
+  { id: 'curinga_exato', icon: '🌟', title: 'Milagre do Curinga', desc: 'Cravou placar usando multiplicador' },
+  { id: 'atirador', icon: '🎯', title: 'Atirador de Elite', desc: 'Acertou o vencedor de 10 jogos' },
   { id: 'patriota', icon: '🏴', title: 'Patriota', desc: 'Cravou o placar da sua seleção' },
-  { id: 'special_one', icon: '👑', title: 'Special One', desc: 'Único a acertar um placar exato' }
+  { id: 'special_one', icon: '👑', title: 'Special One', desc: 'Único a acertar um placar exato' },
+  { id: 'em_chamas', icon: '🔥', title: 'Em Chamas', desc: 'Acertou o vencedor de 5 jogos seguidos' },
+  { id: 'fiel', icon: '忠', title: 'Fiel', desc: 'Sempre apostou no Brasil para vencer' },
+  { id: 'empatador', icon: '🤝', title: 'Empatador', desc: 'Apostou em empate mais de 10 vezes' },
+  { id: 'lider', icon: '👑', title: 'Líder', desc: 'Ficou em 1º no ranking por várias rodadas' },
+  { id: 'conservador', icon: '🛡️', title: 'Conservador', desc: '80%+ dos palpites foram em vitórias do favorito' },
+  { id: 'virada_epica', icon: '🚀', title: 'Virada Épica', desc: 'Subiu 5+ posições no ranking em uma rodada' },
+  { id: 'anarquista', icon: '🃏', title: 'Anarquista', desc: '50%+ dos palpites foram em zebras' },
+  { id: 'craque_rodada', icon: '🌟', title: 'Craque da Rodada', desc: 'Maior pontuação numa única rodada' },
+  { id: 'alienigena', icon: '👽', title: 'Alienígena', desc: 'Foi o único a acertar o placar 3 vezes' },
+  { id: 'vice_eterno', icon: '🥈', title: 'Vice Eterno', desc: 'Ficou em 2º lugar por 3 rodadas seguidas' },
+  { id: 'goleiro', icon: '🧤', title: 'Goleiro', desc: 'Acertou 5 jogos com placar de 0 a 0 ou 1 a 0' },
+  { id: 'hat_trick', icon: '⚽', title: 'Hat-trick', desc: 'Acertou 3 placares exatos em um único dia' },
+  { id: 'telepata', icon: '🧠', title: 'Telepata', desc: 'Teve o mesmo palpite exato que outro jogador 5 vezes' },
+  { id: 'campeao_antecipado', icon: '🏆', title: 'Campeão Antecipado', desc: 'Apostou no campeão antes do torneio e acertou' },
+  { id: 'azarado', icon: '😤', title: 'Azarado', desc: 'Errou o placar exato por 1 gol 5 vezes' },
+  { id: 'igual_chatgpt', icon: '🤖', title: 'Igual ao ChatGPT', desc: 'Teve o mesmo palpite que os perfis das IA em 3 jogos' }
 ];
 
 function renderSalaTrofeus(myData) {

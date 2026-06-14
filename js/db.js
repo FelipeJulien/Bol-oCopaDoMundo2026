@@ -452,9 +452,17 @@ const dbAPI = {
       db.collection('users').get().then(async function(usersSnap) {
           const usersPicksMap = {};
           const allPicksByMatch = {};
+          const botUserIds = [];
           
           // First Pass: Load all picks and calculate community stats
           for (let userDoc of usersSnap.docs) {
+            const uData = userDoc.data();
+            if (uData && uData.name) {
+               const nLower = uData.name.toLowerCase();
+               if (nLower.includes("chatgpt") || nLower.includes("claude") || nLower.includes("gemini") || nLower.includes("grok")) {
+                  botUserIds.push(userDoc.id);
+               }
+            }
             const picksSnap = await db.collection('users').doc(userDoc.id).collection('picks').get();
             const picksData = {};
             picksSnap.forEach(function(pickDoc) {
@@ -567,6 +575,22 @@ const dbAPI = {
             let hasPatriota = false;
             let hasSpecialOne = false;
 
+            // New Trophy Variables
+            let currentWinnerStreak = 0;
+            let maxWinnerStreak = 0;
+            let betOnBrazilAndWonAll = true;
+            let hasPlayedBrazil = false;
+            let drawBetsCount = 0;
+            let totalBets = 0;
+            let countFavorito = 0;
+            let countZebraTotal = 0;
+            let alienigenaCount = 0;
+            let goleiroHits = 0;
+            let exactHitsByDate = {};
+            let azaradoHits = 0;
+            let botHits = 0;
+            let telepataMatchCount = {};
+
             userFinishedMatches.forEach(function(um) {
               if (um.exact) {
                 currentExactStreak++;
@@ -591,10 +615,11 @@ const dbAPI = {
               if (um.winner) uniqueWinnerHits.add(um.match.id);
               
               if (um.exact) {
-                const scoreStr = um.pick.home + 'x' + um.pick.away;
-                if (allPicksByMatch[um.match.id] && allPicksByMatch[um.match.id].scores[scoreStr] === 1) {
-                  hasSpecialOne = true;
-                }
+                 const scoreStr = um.pick.home + 'x' + um.pick.away;
+                 if (allPicksByMatch[um.match.id] && allPicksByMatch[um.match.id].scores[scoreStr] === 1) {
+                   hasSpecialOne = true;
+                   alienigenaCount++;
+                 }
               }
               
               if (userData.avatar_bandeira && um.exact) {
@@ -617,6 +642,66 @@ const dbAPI = {
                    if (pct >= 0.80) hasMaria = true;
                 }
               }
+              
+              // New Trophy Logic
+              if (um.winner) {
+                 currentWinnerStreak++;
+                 maxWinnerStreak = Math.max(maxWinnerStreak, currentWinnerStreak);
+              } else {
+                 currentWinnerStreak = 0;
+              }
+
+              if (um.match.home.name === 'Brasil' || um.match.away.name === 'Brasil') {
+                  hasPlayedBrazil = true;
+                  let pickBrazilWinner = false;
+                  if (um.match.home.name === 'Brasil' && um.pick.home > um.pick.away) pickBrazilWinner = true;
+                  if (um.match.away.name === 'Brasil' && um.pick.away > um.pick.home) pickBrazilWinner = true;
+                  if (!pickBrazilWinner) {
+                      betOnBrazilAndWonAll = false;
+                  }
+              }
+
+              if (um.pick.home === um.pick.away) drawBetsCount++;
+              totalBets++;
+              
+              const cStats = allPicksByMatch[um.match.id];
+              if (cStats && cStats.total >= 3) {
+                  let pickType = '';
+                  if (um.pick.home > um.pick.away) pickType = 'home';
+                  else if (um.pick.home < um.pick.away) pickType = 'away';
+                  else pickType = 'draw';
+                  
+                  const pct = cStats[pickType] / cStats.total;
+                  if (pct >= 0.60) countFavorito++;
+                  if (pct <= 0.20) countZebraTotal++;
+              }
+
+              if (um.exact && (um.pick.home + um.pick.away <= 1)) goleiroHits++;
+
+              if (um.exact && um.match.date) {
+                  const dateObj = new Date(um.match.date);
+                  const dKey = dateObj.toISOString().split('T')[0];
+                  exactHitsByDate[dKey] = (exactHitsByDate[dKey] || 0) + 1;
+              }
+
+              if (!um.exact) {
+                  const errGols = Math.abs(um.pick.home - um.result.home) + Math.abs(um.pick.away - um.result.away);
+                  if (errGols === 1) azaradoHits++;
+              }
+
+              let matchBot = false;
+              Object.keys(usersPicksMap).forEach(otherId => {
+                  if (otherId !== userDoc.id) {
+                      let oPick = usersPicksMap[otherId][um.match.id];
+                      if (oPick && oPick.home === um.pick.home && oPick.away === um.pick.away) {
+                          telepataMatchCount[otherId] = (telepataMatchCount[otherId] || 0) + 1;
+                          if (botUserIds.includes(otherId)) {
+                              matchBot = true;
+                          }
+                      }
+                  }
+              });
+              if (matchBot) botHits++;
             });
 
             // Save Patriota if earned so it persists even if avatar changes
@@ -641,7 +726,23 @@ const dbAPI = {
               'curinga_exato': { id: 'curinga_exato', icon: '🌟', title: 'Milagre do Curinga (Cravou placar usando multiplicador)' },
               'atirador': { id: 'atirador', icon: '🎯', title: 'Atirador de Elite (Acertou 10 jogos no campeonato)' },
               'patriota': { id: 'patriota', icon: '🏴', title: 'Patriota (Cravou o placar da sua seleção)' },
-              'special_one': { id: 'special_one', icon: '👑', title: 'Special One (Único a acertar um placar exato)' }
+              'special_one': { id: 'special_one', icon: '👑', title: 'Special One (Único a acertar um placar exato)' },
+              'em_chamas': { id: 'em_chamas', icon: '🔥', title: 'Em Chamas (Acertou o vencedor de 5 jogos seguidos)' },
+              'fiel': { id: 'fiel', icon: '忠', title: 'Fiel (Sempre apostou no Brasil para vencer)' },
+              'empatador': { id: 'empatador', icon: '🤝', title: 'Empatador (Apostou em empate mais de 10 vezes)' },
+              'lider': { id: 'lider', icon: '👑', title: 'Líder (Ficou em 1º no ranking por várias rodadas)' },
+              'conservador': { id: 'conservador', icon: '🛡️', title: 'Conservador (80%+ dos palpites foram em vitórias do favorito)' },
+              'virada_epica': { id: 'virada_epica', icon: '🚀', title: 'Virada Épica (Subiu 5+ posições no ranking em uma rodada)' },
+              'anarquista': { id: 'anarquista', icon: '🃏', title: 'Anarquista (50%+ dos palpites foram em zebras)' },
+              'craque_rodada': { id: 'craque_rodada', icon: '🌟', title: 'Craque da Rodada (Maior pontuação numa única rodada)' },
+              'alienigena': { id: 'alienigena', icon: '👽', title: 'Alienígena (Foi o único a acertar o placar 3 vezes)' },
+              'vice_eterno': { id: 'vice_eterno', icon: '🥈', title: 'Vice Eterno (Ficou em 2º lugar por 3 rodadas seguidas)' },
+              'goleiro': { id: 'goleiro', icon: '🧤', title: 'Goleiro (Acertou 5 jogos com placar de 0 a 0 ou 1 a 0)' },
+              'hat_trick': { id: 'hat_trick', icon: '⚽', title: 'Hat-trick (Acertou 3 placares exatos em um único dia)' },
+              'telepata': { id: 'telepata', icon: '🧠', title: 'Telepata (Teve o mesmo palpite exato que outro jogador 5 vezes)' },
+              'campeao_antecipado': { id: 'campeao_antecipado', icon: '🏆', title: 'Campeão Antecipado (Apostou no campeão antes do torneio e acertou)' },
+              'azarado': { id: 'azarado', icon: '😤', title: 'Azarado (Errou o placar exato por 1 gol 5 vezes)' },
+              'igual_chatgpt': { id: 'igual_chatgpt', icon: '🤖', title: 'Igual ao ChatGPT (Teve o mesmo palpite que os perfis das IA em 3 jogos)' }
             };
 
             let userBadgesMap = new Map();
@@ -665,6 +766,35 @@ const dbAPI = {
             if (uniqueWinnerHits.size >= 10) userBadgesMap.set('atirador', ALL_POSSIBLE_BADGES['atirador']);
             if (hasPatriota) userBadgesMap.set('patriota', ALL_POSSIBLE_BADGES['patriota']);
             if (hasSpecialOne) userBadgesMap.set('special_one', ALL_POSSIBLE_BADGES['special_one']);
+
+            let hasEmChamas = maxWinnerStreak >= 5;
+            let hasFiel = hasPlayedBrazil && betOnBrazilAndWonAll;
+            let hasEmpatador = drawBetsCount >= 10;
+            let hasConservador = totalBets > 0 && (countFavorito / totalBets) >= 0.80;
+            let hasAnarquista = totalBets > 0 && (countZebraTotal / totalBets) >= 0.50;
+            let hasAlien = alienigenaCount >= 3;
+            let hasGoleiro = goleiroHits >= 5;
+            let hasHatTrick = Object.values(exactHitsByDate).some(v => v >= 3);
+            let hasAzarado = azaradoHits >= 5;
+            let hasIgualChatGPT = botHits >= 3;
+            let hasTelepata = Object.values(telepataMatchCount).some(v => v >= 5);
+            let hasCampeaoAntecipado = false;
+            if (results.bonus_campeao && userData.bonus_campeao === results.bonus_campeao) {
+               hasCampeaoAntecipado = true;
+            }
+
+            if (hasEmChamas) userBadgesMap.set('em_chamas', ALL_POSSIBLE_BADGES['em_chamas']);
+            if (hasFiel) userBadgesMap.set('fiel', ALL_POSSIBLE_BADGES['fiel']);
+            if (hasEmpatador) userBadgesMap.set('empatador', ALL_POSSIBLE_BADGES['empatador']);
+            if (hasConservador) userBadgesMap.set('conservador', ALL_POSSIBLE_BADGES['conservador']);
+            if (hasAnarquista) userBadgesMap.set('anarquista', ALL_POSSIBLE_BADGES['anarquista']);
+            if (hasAlien) userBadgesMap.set('alienigena', ALL_POSSIBLE_BADGES['alienigena']);
+            if (hasGoleiro) userBadgesMap.set('goleiro', ALL_POSSIBLE_BADGES['goleiro']);
+            if (hasHatTrick) userBadgesMap.set('hat_trick', ALL_POSSIBLE_BADGES['hat_trick']);
+            if (hasAzarado) userBadgesMap.set('azarado', ALL_POSSIBLE_BADGES['azarado']);
+            if (hasIgualChatGPT) userBadgesMap.set('igual_chatgpt', ALL_POSSIBLE_BADGES['igual_chatgpt']);
+            if (hasTelepata) userBadgesMap.set('telepata', ALL_POSSIBLE_BADGES['telepata']);
+            if (hasCampeaoAntecipado) userBadgesMap.set('campeao_antecipado', ALL_POSSIBLE_BADGES['campeao_antecipado']);
 
             let badges = Array.from(userBadgesMap.values());
 
