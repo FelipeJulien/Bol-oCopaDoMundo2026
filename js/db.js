@@ -230,14 +230,16 @@ const dbAPI = {
     if (isCuringa !== undefined) localData.picks[matchId].isCuringa = isCuringa;
     localStorage.setItem('user_' + userId, JSON.stringify(localData));
     if (db) {
-      await db.collection('users').doc(userId).set({
+      const updateObj = {
         name: userName,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, {merge: true});
+      };
       const pickData = { home: home, away: away };
       if (isCuringa) pickData.isCuringa = true;
-      else pickData.isCuringa = false;
-      await db.collection('users').doc(userId).collection('picks').doc(matchId).set(pickData, {merge: true});
+      else pickData.isCuringa = firebase.firestore.FieldValue.delete(); // Delete if false to save space
+      
+      updateObj[`picks.${matchId}`] = pickData;
+      await db.collection('users').doc(userId).set(updateObj, {merge: true});
     }
   },
 
@@ -308,19 +310,25 @@ const dbAPI = {
       localStorage.setItem('user_' + userId, JSON.stringify(localData));
     }
     if (db) {
-      const picksSnap = await db.collection('users').doc(userId).collection('picks').get();
-      const batch = db.batch();
-      picksSnap.forEach(doc => {
-        if (doc.data().isCuringa) {
-          batch.set(doc.ref, { isCuringa: firebase.firestore.FieldValue.delete() }, { merge: true });
-        }
-      });
-      await batch.commit();
+      const userSnap = await db.collection('users').doc(userId).get();
+      const userData = userSnap.data() || {};
+      const updateObj = { updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+      let hasChanges = false;
       
-      // Update updatedAt on user to trigger a recalculation
-      await db.collection('users').doc(userId).set({
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, {merge: true});
+      if (userData.picks) {
+        for (let mId in userData.picks) {
+          if (userData.picks[mId].isCuringa) {
+            updateObj[`picks.${mId}.isCuringa`] = firebase.firestore.FieldValue.delete();
+            hasChanges = true;
+          }
+        }
+      }
+      
+      if (hasChanges) {
+        await db.collection('users').doc(userId).update(updateObj);
+      } else {
+        await db.collection('users').doc(userId).set({ updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+      }
     }
   },
 
@@ -370,11 +378,9 @@ const dbAPI = {
     const localData = JSON.parse(localStorage.getItem('user_' + userId) || '{"picks":{}, "bonus":{}}');
     if (!db) return localData;
     try {
-      const picksSnap = await db.collection('users').doc(userId).collection('picks').get();
       const userSnap = await db.collection('users').doc(userId).get();
-      const picks = {};
-      picksSnap.forEach(function(doc) { picks[doc.id] = doc.data(); });
       const userData = userSnap.data() || {};
+      const picks = userData.picks || {};
       const bonus = {
         campeao: userData.bonus_campeao || '',
         artilheiro: userData.bonus_artilheiro || '',
@@ -463,12 +469,9 @@ const dbAPI = {
                   botUserIds.push(userDoc.id);
                }
             }
-            const picksSnap = await db.collection('users').doc(userDoc.id).collection('picks').get();
-            const picksData = {};
-            picksSnap.forEach(function(pickDoc) {
-              const mId = pickDoc.id;
-              const p = pickDoc.data();
-              picksData[mId] = p;
+            const picksData = uData.picks || {};
+            for (let mId in picksData) {
+              const p = picksData[mId];
               
               if (p.home !== undefined && p.away !== undefined) {
                 if (!allPicksByMatch[mId]) allPicksByMatch[mId] = { home: 0, draw: 0, away: 0, total: 0, scores: {} };
