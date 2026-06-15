@@ -920,44 +920,56 @@ const dbAPI = {
     }
   },
 listenToUpdates: (callback) => {
-    if (!db) return;
+    if (!window.supabaseClient) return;
     let currentResults = {};
     let currentRankingData = null;
 
-    // Listen to results for Goal Notifications only
-    let previousResultsCache = null;
-    window._resultsListener = db.collection('meta').doc('results').onSnapshot(function(snap) {
-      currentResults = snap.exists ? snap.data() : {};
-      
-      if (previousResultsCache !== null) {
-        for (let mId in currentResults) {
-          const curr = currentResults[mId];
-          const prev = previousResultsCache[mId];
-          if (curr && curr.home !== undefined && !curr.canceled) {
-             const prevHome = prev && prev.home !== undefined ? prev.home : 0;
-             const prevAway = prev && prev.away !== undefined ? prev.away : 0;
-             // Notifications log
-          }
+    // Fetch initially
+    window.supabaseClient.from('meta').select('id, data').in('id', ['results', 'ranking_cache']).then(({ data, error }) => {
+        if (!error && data) {
+            data.forEach(row => {
+                if (row.id === 'results') currentResults = row.data || {};
+                if (row.id === 'ranking_cache') currentRankingData = row.data || null;
+            });
+            if (currentRankingData) {
+                if (!currentRankingData.ranking) currentRankingData.ranking = [];
+                if (!currentRankingData.allPicksByMatch) currentRankingData.allPicksByMatch = {};
+                callback(currentRankingData.ranking, currentResults, currentRankingData.allPicksByMatch);
+            } else {
+                dbAPI.recalculateGlobalRanking();
+            }
         }
-      }
-      previousResultsCache = JSON.parse(JSON.stringify(currentResults));
-      
-      if (currentRankingData) {
-         callback(currentRankingData.ranking, currentResults, currentRankingData.allPicksByMatch);
-      }
     });
 
-    window._rankingListener = db.collection('meta').doc('ranking_cache').onSnapshot(function(snap) {
-      if (snap.exists) {
-         currentRankingData = snap.data();
-         if (!currentRankingData.ranking) currentRankingData.ranking = [];
-         if (!currentRankingData.allPicksByMatch) currentRankingData.allPicksByMatch = {};
-         callback(currentRankingData.ranking, currentResults, currentRankingData.allPicksByMatch);
-      } else {
-         console.warn("Ranking cache not found! Triggering initial calculation...");
-         dbAPI.recalculateGlobalRanking();
-      }
-    });
+    let previousResultsCache = null;
+
+    window._rankingListener = window.supabaseClient
+      .channel('public:meta:listenToUpdates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'meta' }, payload => {
+          if (payload.new.id === 'results') {
+              currentResults = payload.new.data || {};
+              if (previousResultsCache !== null) {
+                for (let mId in currentResults) {
+                  const curr = currentResults[mId];
+                  const prev = previousResultsCache[mId];
+                  if (curr && curr.home !== undefined && !curr.canceled) {
+                     // Goal notifications log
+                  }
+                }
+              }
+              previousResultsCache = JSON.parse(JSON.stringify(currentResults));
+              if (currentRankingData) {
+                 callback(currentRankingData.ranking, currentResults, currentRankingData.allPicksByMatch);
+              }
+          }
+          if (payload.new.id === 'ranking_cache') {
+              currentRankingData = payload.new.data || {};
+              if (!currentRankingData.ranking) currentRankingData.ranking = [];
+              if (!currentRankingData.allPicksByMatch) currentRankingData.allPicksByMatch = {};
+              callback(currentRankingData.ranking, currentResults, currentRankingData.allPicksByMatch);
+          }
+      })
+      .subscribe();
   },
 
   // Normalizar string para comparação de bônus
