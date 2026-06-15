@@ -484,7 +484,7 @@ const dbAPI = {
                 if (!allPicksByMatch[mId].scores[scoreStr]) allPicksByMatch[mId].scores[scoreStr] = 0;
                 allPicksByMatch[mId].scores[scoreStr]++;
               }
-            });
+            }
             usersPicksMap[userDoc.id] = picksData;
           }
 
