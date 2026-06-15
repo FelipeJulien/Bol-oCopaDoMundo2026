@@ -176,6 +176,7 @@ function renderJogos() {
         </div>
         <div class="admin-game-actions" style="display:flex; flex-direction:column; gap:8px;">
           <button class="btn-admin primary" onclick="salvarResultado('${match.id}')">Salvar Resultado</button>
+          <button class="btn-admin" style="background:#8a2be2;" onclick="finalizarJogo('${match.id}')">Finalizar Jogo</button>
           <button class="btn-admin secondary" style="background:#444;" onclick="zerarResultado('${match.id}')">Zerar Placar</button>
           <button class="btn-admin danger" onclick="cancelarJogo('${match.id}')">Cancelar Jogo</button>
         </div>
@@ -199,7 +200,26 @@ window.salvarResultado = async function(matchId) {
   
   await dbAPI.saveResult(resultsObj);
   logAction('Salvar Resultado', `Jogo ${matchId}: ${hVal}x${aVal}`, 'Sem resultado oficial');
-  showAdminToast("Placar oficial salvo! Ranking recalculado.");
+  showAdminToast("Resultado salvo com sucesso!");
+  logAction("salvar_resultado", resultsObj, null);
+};
+
+window.finalizarJogo = async function(matchId) {
+  if (!confirm('Tem certeza que deseja finalizar este jogo manualmente? Ele será encerrado na tela principal.')) return;
+  const hVal = document.getElementById(`res-home-${matchId}`).value;
+  const aVal = document.getElementById(`res-away-${matchId}`).value;
+  
+  if (hVal === '' || aVal === '') {
+    showAdminToast("Erro: Preencha os placares antes de finalizar!", true);
+    return;
+  }
+  
+  const resultsObj = {};
+  resultsObj[matchId] = { home: parseInt(hVal), away: parseInt(aVal), canceled: false, status: 'finished' };
+  
+  await dbAPI.saveResult(resultsObj);
+  showAdminToast("Jogo finalizado com sucesso!");
+  logAction("finalizar_jogo", resultsObj, null);
 };
 
 window.zerarResultado = async function(matchId) {
