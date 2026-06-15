@@ -947,13 +947,15 @@ listenToUpdates: (callback) => {
       }
     });
 
-    // Listen to the central ranking cache
     window._rankingListener = db.collection('meta').doc('ranking_cache').onSnapshot(function(snap) {
       if (snap.exists) {
          currentRankingData = snap.data();
          if (!currentRankingData.ranking) currentRankingData.ranking = [];
          if (!currentRankingData.allPicksByMatch) currentRankingData.allPicksByMatch = {};
          callback(currentRankingData.ranking, currentResults, currentRankingData.allPicksByMatch);
+      } else {
+         console.warn("Ranking cache not found! Triggering initial calculation...");
+         dbAPI.recalculateGlobalRanking();
       }
     });
   },
