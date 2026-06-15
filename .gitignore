@@ -5,5 +5,5 @@ test_profile.js
 *.json
 !vercel.json
 *.js
-!js/
-!api/
+!js/**/*.js
+!api/**/*.js
