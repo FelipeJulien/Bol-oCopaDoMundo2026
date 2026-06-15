@@ -69,7 +69,7 @@ function animateValue(obj, start, end, duration) {
 // 2. GERAR HTML DE UM CARD DE JOGO — Redesign 3 colunas
 function buildMatchCardHTML(match) {
   var agora = new Date();
-  var matchEnd = new Date(match.date.getTime() + 135 * 60 * 1000); // ~135 min de jogo (com margem)
+  var matchEnd = new Date(match.date.getTime() + 120 * 60 * 1000); // ~120 min de jogo (90 + 30 margem)
   var oneHourBefore = new Date(match.date.getTime() - 60 * 60 * 1000);
   
   var res = globalOfficialResults[match.id];
@@ -1081,7 +1081,7 @@ window.renderPastGamesPicks = function() {
       var hasResult = res.home !== undefined && res.home !== '';
       var isFinished = false;
       if (res.status === 'finished') isFinished = true;
-      else if (agora > new Date(m.date.getTime() + 135 * 60 * 1000)) isFinished = true;
+      else if (agora > new Date(m.date.getTime() + 120 * 60 * 1000)) isFinished = true;
       else if (hasResult) isFinished = true; // Fallback to assume finished if has result
 
       tbodyHtml += `<tr style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-card);">`;
@@ -1146,7 +1146,7 @@ function updateHeaderStatus() {
   var nextMatch = null;
   
   ALL_MATCHES.forEach(function(match) {
-    var matchEnd = new Date(match.date.getTime() + 135 * 60 * 1000);
+    var matchEnd = new Date(match.date.getTime() + 120 * 60 * 1000);
     var res = globalOfficialResults[match.id];
     var isLiveAPI = res && res.status === 'live';
     var isFinishedAPI = res && res.status === 'finished';
@@ -1228,7 +1228,7 @@ function updateLiveTab() {
   // 1. Identificar quais jogos estão ao vivo
   ALL_MATCHES.forEach(function(m) {
     var res = globalOfficialResults[m.id] || { home: 0, away: 0, canceled: false };
-    var matchEnd = new Date(m.date.getTime() + 135 * 60 * 1000); // margem de 135 min
+    var matchEnd = new Date(m.date.getTime() + 120 * 60 * 1000); // margem de 120 min
     var isLiveAPI = res.status === 'live';
     var isFinishedAPI = res.status === 'finished';
     var isFinished = isFinishedAPI || (agora > matchEnd && !isLiveAPI);
