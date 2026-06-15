@@ -606,7 +606,11 @@ function setupAutoSave() {
       document.querySelectorAll('#p-home-' + matchId).forEach(function(el) { if(el !== e.target) el.value = hVal; });
       document.querySelectorAll('#p-away-' + matchId).forEach(function(el) { if(el !== e.target) el.value = aVal; });
       if (hVal !== '' && aVal !== '') {
-        await dbAPI.savePick(currentUser, currentUserName, matchId, parseInt(hVal), parseInt(aVal));
+        var myData = globalRanking.find(u => u.id === currentUser) || {picks:{}};
+        var existingPick = (myData.picks && myData.picks[matchId]) || {};
+        var existingCuringa = !!existingPick.isCuringa;
+        
+        await dbAPI.savePick(currentUser, currentUserName, matchId, parseInt(hVal), parseInt(aVal), existingCuringa);
         showSaveFeedback(matchId);
       }
     }

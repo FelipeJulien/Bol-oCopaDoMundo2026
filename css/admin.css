@@ -375,3 +375,120 @@ h1, h2, h3, .condensed {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+/* =============================================
+   MOBILE RESPONSIVENESS
+   ============================================= */
+@media (max-width: 768px) {
+  .admin-top-bar {
+    flex-direction: column;
+    height: auto;
+    padding: 10px;
+    gap: 10px;
+  }
+  
+  .admin-top-bar h1 {
+    font-size: 1.2rem;
+    text-align: center;
+  }
+  
+  .admin-layout {
+    flex-direction: column;
+    height: calc(100vh - 80px);
+  }
+
+  .admin-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--admin-border);
+    flex-shrink: 0;
+  }
+  
+  .admin-menu {
+    display: flex;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .admin-menu li {
+    border-bottom: none;
+    border-right: 1px solid var(--admin-border);
+    flex-shrink: 0;
+  }
+  
+  .admin-menu button {
+    width: auto;
+    text-align: center;
+    border-left: none !important;
+    border-bottom: 4px solid transparent;
+  }
+  
+  .admin-menu button.active {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: var(--admin-primary);
+    border-bottom: 4px solid var(--admin-primary) !important;
+    border-left: none !important;
+  }
+  
+  .admin-content {
+    padding: 16px;
+  }
+  
+  .admin-game-card {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+  }
+  
+  .admin-game-meta {
+    width: 100%;
+    text-align: center;
+  }
+  
+  .admin-game-teams {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .admin-game-actions {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .admin-game-actions button {
+    flex: 1 1 calc(50% - 10px);
+    min-width: 120px;
+  }
+  
+  .filters-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .data-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  
+  .modal-content {
+    padding: 20px;
+    margin: 16px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  
+  .form-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .form-group > div {
+    width: 100%;
+  }
+}

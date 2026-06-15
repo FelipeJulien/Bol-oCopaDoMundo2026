@@ -230,15 +230,17 @@ const dbAPI = {
     if (isCuringa !== undefined) localData.picks[matchId].isCuringa = isCuringa;
     localStorage.setItem('user_' + userId, JSON.stringify(localData));
     if (db) {
-      const updateObj = {
-        name: userName,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      };
       const pickData = { home: home, away: away };
       if (isCuringa) pickData.isCuringa = true;
       else pickData.isCuringa = firebase.firestore.FieldValue.delete(); // Delete if false to save space
       
-      updateObj[`picks.${matchId}`] = pickData;
+      const updateObj = {
+        name: userName,
+        picks: {
+          [matchId]: pickData
+        },
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
       await db.collection('users').doc(userId).set(updateObj, {merge: true});
     }
   },
@@ -456,7 +458,11 @@ const dbAPI = {
       }
       previousResultsCache = JSON.parse(JSON.stringify(results));
 
-      db.collection('users').get().then(async function(usersSnap) {
+      const processUsers = async function() {
+          if (!window.cachedUsersSnap) {
+              window.cachedUsersSnap = await db.collection('users').get();
+          }
+          const usersSnap = window.cachedUsersSnap;
           const usersPicksMap = {};
           const allPicksByMatch = {};
           const botUserIds = [];
@@ -919,8 +925,11 @@ const dbAPI = {
             // }
           }
           ranking.sort(function(a, b) { return b.pts - a.pts || b.exato - a.exato; });
-        callback(ranking, results, allPicksByMatch);
-      });
+          callback(ranking, results, allPicksByMatch);
+          }
+      };
+      
+      processUsers().catch(e => console.error(e));
     });
   },
 

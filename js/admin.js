@@ -196,7 +196,7 @@ window.salvarResultado = async function(matchId) {
   }
   
   const resultsObj = {};
-  resultsObj[matchId] = { home: parseInt(hVal), away: parseInt(aVal), canceled: false };
+  resultsObj[matchId] = { home: parseInt(hVal), away: parseInt(aVal), canceled: false, status: 'live' };
   
   await dbAPI.saveResult(resultsObj);
   logAction('Salvar Resultado', `Jogo ${matchId}: ${hVal}x${aVal}`, 'Sem resultado oficial');
@@ -357,17 +357,15 @@ window.zerarUsuario = async function(userId) {
   logAction("Zerar Usuário", `Usuário ${userId} zerado.`, '');
   
   if (typeof db !== 'undefined' && db) {
-    // Delete picks subcollection is tricky in client-side, we can just delete the user doc 
-    // or clear fields if we only want to reset points. But since ranking is computed dynamically,
-    // we MUST delete their picks to truly zero them.
-    const picksSnap = await db.collection('users').doc(userId).collection('picks').get();
-    const batch = db.batch();
-    picksSnap.forEach(doc => {
-      batch.delete(doc.ref);
+    await db.collection('users').doc(userId).update({
+      picks: firebase.firestore.FieldValue.delete(),
+      pontos_ajuste: firebase.firestore.FieldValue.delete()
     });
-    await batch.commit();
   } else {
-    localStorage.removeItem('user_' + userId);
+    let localData = JSON.parse(localStorage.getItem('user_' + userId) || '{}');
+    delete localData.picks;
+    delete localData.pontos_ajuste;
+    localStorage.setItem('user_' + userId, JSON.stringify(localData));
   }
   showAdminToast("Pontuação do usuário zerada com sucesso!");
 };
@@ -382,14 +380,7 @@ window.excluirUsuario = async function(userId, userName) {
   logAction("Excluir Usuário", `Usuário ${userName} (${userId}) excluído do sistema.`, '');
   
   if (typeof db !== 'undefined' && db) {
-    const picksSnap = await db.collection('users').doc(userId).collection('picks').get();
-    const batch = db.batch();
-    picksSnap.forEach(doc => {
-      batch.delete(doc.ref);
-    });
-    // Apaga o documento raiz do usuário
-    batch.delete(db.collection('users').doc(userId));
-    await batch.commit();
+    await db.collection('users').doc(userId).delete();
   } else {
     localStorage.removeItem('user_' + userId);
   }
@@ -511,14 +502,13 @@ async function carregarApostasTabela() {
   
   if (typeof db !== 'undefined' && db) {
     // Busca as apostas desse jogo para todos os usuários
-    // Como não temos Firebase Admin SDK, precisamos varrer usuarios
     const usersSnap = await db.collection('users').get();
     for (let uDoc of usersSnap.docs) {
-      if (userNameSearch && !uDoc.data().name?.toLowerCase().includes(userNameSearch)) continue;
+      const uData = uDoc.data();
+      if (userNameSearch && !uData.name?.toLowerCase().includes(userNameSearch)) continue;
       
-      const pickDoc = await db.collection('users').doc(uDoc.id).collection('picks').doc(matchId).get();
-      if (pickDoc.exists) {
-        html += renderLinhaAposta(uDoc.id, uDoc.data().name || 'Anônimo', matchId, pickDoc.data());
+      if (uData.picks && uData.picks[matchId]) {
+        html += renderLinhaAposta(uDoc.id, uData.name || 'Anônimo', matchId, uData.picks[matchId]);
       }
     }
   } else {
@@ -570,10 +560,10 @@ function renderLinhaAposta(userId, userName, matchId, pick) {
     <tr>
       <td>${userName}<br><small style="color:var(--admin-muted)">${userId}</small></td>
       <td>${jogoStr}</td>
-      <td style="font-weight:bold;">${pickStr}</td>
+      <td style="font-weight:bold;">${pickStr} ${pick.isCuringa ? '⭐' : ''}</td>
       <td><strong>${pts} pts</strong> ${statusHTML}</td>
       <td>
-        <button class="btn-admin" onclick="abrirModalEdicao('${userId}', '${userName}', '${matchId}', ${pick.home}, ${pick.away})">Editar</button>
+        <button class="btn-admin" onclick="abrirModalEdicao('${userId}', '${userName}', '${matchId}', ${pick.home}, ${pick.away}, ${!!pick.isCuringa})">Editar</button>
       </td>
     </tr>
   `;
@@ -600,8 +590,9 @@ const editBetGame = document.getElementById('edit-bet-game');
 const editBetGameid = document.getElementById('edit-bet-gameid');
 const editBetHome = document.getElementById('edit-bet-home');
 const editBetAway = document.getElementById('edit-bet-away');
+const editBetCuringa = document.getElementById('edit-bet-curinga');
 
-window.abrirModalEdicao = function(userId, userName, matchId, home, away) {
+window.abrirModalEdicao = function(userId, userName, matchId, home, away, isCuringa = false) {
   editBetUserid.value = userId;
   editBetUser.value = userName;
   editBetGameid.value = matchId;
@@ -611,6 +602,7 @@ window.abrirModalEdicao = function(userId, userName, matchId, home, away) {
   
   editBetHome.value = home;
   editBetAway.value = away;
+  editBetCuringa.checked = isCuringa;
   
   modalEditBet.classList.remove('hidden');
 };
@@ -625,18 +617,31 @@ document.getElementById('btn-save-edit').addEventListener('click', async () => {
   const matchId = editBetGameid.value;
   const h = parseInt(editBetHome.value);
   const a = parseInt(editBetAway.value);
+  const isCuringa = editBetCuringa.checked;
   
   if (isNaN(h) || isNaN(a)) {
     showAdminToast("Erro: Valores inválidos para a aposta.", true);
     return;
   }
   
-  await dbAPI.savePick(userId, userName, matchId, h, a);
+  await dbAPI.savePick(userId, userName, matchId, h, a, isCuringa);
   logAction("Editar Aposta", `Aposta do usuário ${userId} no jogo ${matchId} alterada para ${h}x${a}`, "");
   
+  // Update local cache so UI updates immediately
+  if (typeof allUsersCache !== 'undefined') {
+    let userInCache = allUsersCache.find(u => u.id === userId);
+    if (userInCache) {
+      if (!userInCache.picks) userInCache.picks = {};
+      userInCache.picks[matchId] = { home: h, away: a, isCuringa: isCuringa };
+    }
+  }
+  
   modalEditBet.classList.add('hidden');
-  carregarApostasTabela();
-  showAdminToast("Aposta do usuário salva com sucesso!");
+  showAdminToast("Aposta salva com sucesso! O ranking será atualizado.", false);
+  
+  if (document.getElementById('sec-apostas').classList.contains('active')) {
+    carregarApostasTabela();
+  }
 });
 
 document.getElementById('btn-add-bet').addEventListener('click', () => {
@@ -666,7 +671,7 @@ document.getElementById('btn-add-bet').addEventListener('click', () => {
     userId = 'manual_' + Date.now();
   }
   
-  abrirModalEdicao(userId, userName, matchId, 0, 0);
+  abrirModalEdicao(userId, userName, matchId, 0, 0, false);
 });
 
 // INITIALIZE
