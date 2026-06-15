@@ -199,13 +199,13 @@ const ALL_TEAMS = Object.values(TEAM_MAP).sort(function(a, b) {
 
 // 7. CONFIGURAÇÃO FIREBASE
 const firebaseConfig = {
-  apiKey: "AIzaSyBapdLKIiqP04vEp_z2b6_OS9CqpJyqKKo",
-  authDomain: "bolaocopa26-f4d17.firebaseapp.com",
-  projectId: "bolaocopa26-f4d17",
-  storageBucket: "bolaocopa26-f4d17.firebasestorage.app",
-  messagingSenderId: "665725539665",
-  appId: "1:665725539665:web:58e64480638a187a2def70",
-  measurementId: "G-98ZYG6P3M1"
+  apiKey: "AIzaSyD2a4g_AomDFnki1ZbWWdBTMsR56UecGt0",
+  authDomain: "bolao26-b08cc.firebaseapp.com",
+  projectId: "bolao26-b08cc",
+  storageBucket: "bolao26-b08cc.firebasestorage.app",
+  messagingSenderId: "25490714813",
+  appId: "1:25490714813:web:18350a5aae322e0ef587d4",
+  measurementId: "G-ZD82P8YD59"
 };
 
 let db = null;
@@ -214,6 +214,17 @@ if (typeof firebase !== 'undefined' && firebaseConfig.apiKey) {
     firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
     console.log("Firebase conectado.");
+
+    // Sincronização de Emergência: Puxar do localStorage para o novo banco
+    const currentUserId = localStorage.getItem('auth_uid');
+    if (currentUserId && db) {
+      const localData = localStorage.getItem('user_' + currentUserId);
+      if (localData) {
+        db.collection('users').doc(currentUserId).set(JSON.parse(localData), { merge: true })
+          .then(() => console.log("Dados sincronizados do cache local!"))
+          .catch(err => console.error("Erro na sincronização:", err));
+      }
+    }
   } catch(e) {
     console.error("Erro ao conectar Firebase:", e);
   }
