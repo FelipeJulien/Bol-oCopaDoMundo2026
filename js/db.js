@@ -444,12 +444,13 @@ const dbAPI = {
             const prevHome = prev && prev.home !== undefined ? prev.home : 0;
             const prevAway = prev && prev.away !== undefined ? prev.away : 0;
             
-            if (curr.home > prevHome) {
-               window.dispatchEvent(new CustomEvent('goalScored', { detail: { matchId: mId, team: 'home', homeScore: curr.home, awayScore: curr.away } }));
-            }
-            if (curr.away > prevAway) {
-               window.dispatchEvent(new CustomEvent('goalScored', { detail: { matchId: mId, team: 'away', homeScore: curr.home, awayScore: curr.away } }));
-            }
+            // Notifications disabled
+            // if (curr.home > prevHome) {
+            //    window.dispatchEvent(new CustomEvent('goalScored', { detail: { matchId: mId, team: 'home', homeScore: curr.home, awayScore: curr.away } }));
+            // }
+            // if (curr.away > prevAway) {
+            //    window.dispatchEvent(new CustomEvent('goalScored', { detail: { matchId: mId, team: 'away', homeScore: curr.home, awayScore: curr.away } }));
+            // }
           }
         }
       }
