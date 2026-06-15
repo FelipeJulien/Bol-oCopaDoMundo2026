@@ -914,8 +914,6 @@ const dbAPI = {
           ranking.sort(function(a, b) { return b.pts - a.pts || b.exato - a.exato; });
           await db.collection('meta').doc('ranking_cache').set({ ranking: ranking, allPicksByMatch: allPicksByMatch, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
           console.log('Global Ranking updated successfully!');
-          }
-
         
     } catch(e) {
         console.error("Error recalculating ranking:", e);
