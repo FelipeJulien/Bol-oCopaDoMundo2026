@@ -625,6 +625,7 @@ document.getElementById('btn-save-edit').addEventListener('click', async () => {
   }
   
   await dbAPI.savePick(userId, userName, matchId, h, a, isCuringa);
+  await dbAPI.recalculateGlobalRanking();
   logAction("Editar Aposta", `Aposta do usuário ${userId} no jogo ${matchId} alterada para ${h}x${a}`, "");
   
   // Update local cache so UI updates immediately

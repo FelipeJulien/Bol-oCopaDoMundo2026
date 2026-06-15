@@ -2108,6 +2108,14 @@ function initApp() {
   // Auto-sync de resultados via API WorldCup26.ir a cada 2 minutos
   startAutoSync(120000);
   
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+      if (typeof stopAutoSync === 'function') stopAutoSync();
+    } else {
+      if (typeof startAutoSync === 'function') startAutoSync(120000);
+    }
+  });
+  
   // Sidebar toggle
   var sidebar = document.getElementById('sidebar');
   var btnSidebarToggle = document.getElementById('btn-sidebar-toggle');

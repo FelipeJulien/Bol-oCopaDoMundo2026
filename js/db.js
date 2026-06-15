@@ -355,7 +355,7 @@ const dbAPI = {
 
   listenToLiveConfig: (callback) => {
     if (db) {
-      db.collection('meta').doc('live_config').onSnapshot(function(snap) {
+      window._configListener = db.collection('meta').doc('live_config').onSnapshot(function(snap) {
         if (snap.exists) callback(snap.data());
       });
     } else {
@@ -407,6 +407,7 @@ const dbAPI = {
     localStorage.setItem('official_results', JSON.stringify(local));
     if (db) {
       await db.collection('meta').doc('results').set(resultsObj, {merge: true});
+      await dbAPI.recalculateGlobalRanking();
     }
   },
 
@@ -418,6 +419,7 @@ const dbAPI = {
       const updateObj = {};
       updateObj[matchId] = firebase.firestore.FieldValue.delete();
       await db.collection('meta').doc('results').update(updateObj).catch(e => console.log(e));
+      await dbAPI.recalculateGlobalRanking();
     }
   },
 
@@ -431,41 +433,26 @@ const dbAPI = {
     }
   },
 
-  listenToUpdates: (callback) => {
+  
+  recalculateGlobalRanking: async (results) => {
     if (!db) return;
-    let previousResultsCache = null;
-    db.collection('meta').doc('results').onSnapshot(function(snap) {
-      const results = snap.exists ? snap.data() : {};
-      
-      // Detecção de Gols
-      if (previousResultsCache !== null) {
-        for (let mId in results) {
-          const curr = results[mId];
-          const prev = previousResultsCache[mId];
-          if (curr && curr.home !== undefined && !curr.canceled) {
-            const prevHome = prev && prev.home !== undefined ? prev.home : 0;
-            const prevAway = prev && prev.away !== undefined ? prev.away : 0;
-            
-            // Notifications disabled
-            // if (curr.home > prevHome) {
-            //    window.dispatchEvent(new CustomEvent('goalScored', { detail: { matchId: mId, team: 'home', homeScore: curr.home, awayScore: curr.away } }));
-            // }
-            // if (curr.away > prevAway) {
-            //    window.dispatchEvent(new CustomEvent('goalScored', { detail: { matchId: mId, team: 'away', homeScore: curr.home, awayScore: curr.away } }));
-            // }
-          }
+    if (!results) results = await dbAPI.getResults();
+    try {
+        console.log("Recalculating Global Ranking (Master Client)...");
+        // Check lock
+        const lockSnap = await db.collection('meta').doc('ranking_lock').get();
+        const lastCalc = lockSnap.exists && lockSnap.data().updatedAt ? lockSnap.data().updatedAt.toMillis() : 0;
+        const now = Date.now();
+        if (now - lastCalc < 30000) {
+            console.log("Ranking already recalculated recently by another client.");
+            return;
         }
-      }
-      previousResultsCache = JSON.parse(JSON.stringify(results));
-
-      const processUsers = async function() {
-          if (!window.cachedUsersSnap) {
-              window.cachedUsersSnap = await db.collection('users').get();
-          }
-          const usersSnap = window.cachedUsersSnap;
-          const usersPicksMap = {};
-          const allPicksByMatch = {};
-          const botUserIds = [];
+        await db.collection('meta').doc('ranking_lock').set({ updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        
+        const usersSnap = await db.collection('users').get();
+        const usersPicksMap = {};
+        const allPicksByMatch = {};
+        const botUserIds = [];
           
           // First Pass: Load all picks and calculate community stats
           for (let userDoc of usersSnap.docs) {
@@ -925,11 +912,51 @@ const dbAPI = {
             // }
           }
           ranking.sort(function(a, b) { return b.pts - a.pts || b.exato - a.exato; });
-          callback(ranking, results, allPicksByMatch);
+          await db.collection('meta').doc('ranking_cache').set({ ranking: ranking, allPicksByMatch: allPicksByMatch, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+          console.log('Global Ranking updated successfully!');
           }
-      };
+
+        
+    } catch(e) {
+        console.error("Error recalculating ranking:", e);
+    }
+  },
+listenToUpdates: (callback) => {
+    if (!db) return;
+    let currentResults = {};
+    let currentRankingData = null;
+
+    // Listen to results for Goal Notifications only
+    let previousResultsCache = null;
+    window._resultsListener = db.collection('meta').doc('results').onSnapshot(function(snap) {
+      currentResults = snap.exists ? snap.data() : {};
       
-      processUsers().catch(e => console.error(e));
+      if (previousResultsCache !== null) {
+        for (let mId in currentResults) {
+          const curr = currentResults[mId];
+          const prev = previousResultsCache[mId];
+          if (curr && curr.home !== undefined && !curr.canceled) {
+             const prevHome = prev && prev.home !== undefined ? prev.home : 0;
+             const prevAway = prev && prev.away !== undefined ? prev.away : 0;
+             // Notifications log
+          }
+        }
+      }
+      previousResultsCache = JSON.parse(JSON.stringify(currentResults));
+      
+      if (currentRankingData) {
+         callback(currentRankingData.ranking, currentResults, currentRankingData.allPicksByMatch);
+      }
+    });
+
+    // Listen to the central ranking cache
+    window._rankingListener = db.collection('meta').doc('ranking_cache').onSnapshot(function(snap) {
+      if (snap.exists) {
+         currentRankingData = snap.data();
+         if (!currentRankingData.ranking) currentRankingData.ranking = [];
+         if (!currentRankingData.allPicksByMatch) currentRankingData.allPicksByMatch = {};
+         callback(currentRankingData.ranking, currentResults, currentRankingData.allPicksByMatch);
+      }
     });
   },
 
