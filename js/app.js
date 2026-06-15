@@ -187,6 +187,10 @@ function renderMatches() {
 
   els.jogosContainer.innerHTML = htmlJogos;
   els.proximosContainer.innerHTML = htmlProximos;
+  
+  if (window.cachedUserData) {
+    applyUserDataToDOM(window.cachedUserData);
+  }
 }
 
 // 4. RENDERIZAR ABA DE GRUPOS
@@ -425,10 +429,8 @@ function renderBetResults(picks, officialResults) {
 }
 
 // 7. CARREGAR DADOS DO USUÁRIO
-async function loadUserData() {
-  var data = await dbAPI.getUserData(currentUser);
-  
-  // Update header avatar with user data
+function applyUserDataToDOM(data) {
+  if (!data) return;
   selectedFlag = data.avatar || null;
   updateHeaderAvatar(selectedFlag);
 
@@ -441,13 +443,19 @@ async function loadUserData() {
       updateCuringaUI(matchId, true);
     }
 
-    // Mark cards with existing bets as bet-placed
     if (pick.home !== undefined && pick.away !== undefined) {
       document.querySelectorAll('.match-card[data-match-id="' + matchId + '"]').forEach(function(card) {
         card.classList.add('bet-placed');
       });
     }
   });
+}
+
+async function loadUserData() {
+  var data = await dbAPI.getUserData(currentUser);
+  window.cachedUserData = data;
+  
+  applyUserDataToDOM(data);
 
   // Render bet results for logged user
   var officialResults = await dbAPI.getResults();
@@ -2163,28 +2171,34 @@ function initApp() {
     }
     
     if (currentUser) {
-      var data = await dbAPI.getUserData(currentUser);
-      
-      // Fallback seguro: se DB não retornou nome, usa do localStorage
       var authName = localStorage.getItem('auth_name');
-      currentUserName = (data.nickname || data.name) || authName || 'Anônimo';
-      globalPicks = data.picks || {};
+      const myData = globalRanking.find(u => u.id === currentUser);
       
-      document.getElementById('display-user-name').innerText = currentUserName;
-      
-      // Update avatar
-      selectedFlag = data.avatar || null;
-      updateHeaderAvatar(selectedFlag);
-
-      var hasScores = Object.keys(data.picks).length > 0;
-      if (!hasScores && document.getElementById('login-modal')) {
-        // Se ainda for necessário exibir algo inicial
-      }
-      renderBetResults(data.picks, officialResults);
-      
-      const myDataFromRanking = globalRanking.find(u => u.id === currentUser);
-      if (typeof renderSalaTrofeus === 'function' && myDataFromRanking) {
-        renderSalaTrofeus(myDataFromRanking);
+      if (myData) {
+         currentUserName = (myData.nickname || myData.name) || authName || 'Anônimo';
+         globalPicks = myData.picks || {};
+         
+         window.cachedUserData = {
+            avatar: myData.avatar || null,
+            picks: myData.picks || {},
+            bonus: myData.bonus_answers || {}
+         };
+         
+         document.getElementById('display-user-name').innerText = currentUserName;
+         selectedFlag = myData.avatar || null;
+         updateHeaderAvatar(selectedFlag);
+         
+         var hasScores = Object.keys(myData.picks || {}).length > 0;
+         if (!hasScores && document.getElementById('login-modal')) {
+           // Se ainda for necessário exibir algo inicial
+         }
+         
+         applyUserDataToDOM(window.cachedUserData);
+         renderBetResults(myData.picks || {}, officialResults);
+         
+         if (typeof renderSalaTrofeus === 'function') {
+           renderSalaTrofeus(myData);
+         }
       }
     }
   });
