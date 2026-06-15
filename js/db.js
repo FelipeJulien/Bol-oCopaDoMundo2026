@@ -225,6 +225,19 @@ if (typeof firebase !== 'undefined' && firebaseConfig.apiKey) {
           .catch(err => console.error("Erro na sincronização:", err));
       }
     }
+    
+    // Sincroniza resultados oficiais do Admin se existirem
+    const localResults = localStorage.getItem('official_results');
+    if (localResults && db) {
+       const parsedRes = JSON.parse(localResults);
+       if (Object.keys(parsedRes).length > 0) {
+          db.collection('meta').doc('results').set(parsedRes, {merge: true}).then(() => {
+             console.log("Resultados oficiais sincronizados!");
+             // Força recálculo
+             setTimeout(() => dbAPI.recalculateGlobalRanking(), 2000);
+          });
+       }
+    }
   } catch(e) {
     console.error("Erro ao conectar Firebase:", e);
   }
