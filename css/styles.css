@@ -2416,3 +2416,17 @@ h1, h2, h3, h4, .condensed {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+/ *   R e s p o n s i v e   a d j u s t m e n t s   f o r   c o m p a r a t i v o   t a b l e   * /  
+ @ m e d i a   ( m i n - w i d t h :   7 6 9 p x )   {  
+     . c o m p a r a t i v o - s t i c k y - c o l - h e a d e r   {  
+         p o s i t i o n :   s t i c k y ;  
+         l e f t :   0 ;  
+         z - i n d e x :   2 ;  
+     }  
+     . c o m p a r a t i v o - s t i c k y - c o l - c e l l   {  
+         p o s i t i o n :   s t i c k y ;  
+         l e f t :   0 ;  
+         z - i n d e x :   1 ;  
+     }  
+ }  
+ 

@@ -1054,7 +1054,7 @@ window.renderPastGamesPicks = function() {
   var displayRanking = globalRanking.filter(u => Object.keys(u.picks || {}).length > 0 || u.pts > 0);
   
   var theadHtml = `<tr style="background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--border-subtle);">
-    <th style="padding: 12px 16px; color: var(--text-muted); text-align: left; min-width: 200px; position: sticky; left: 0; background: var(--bg-card); z-index: 2;">Jogo</th>
+    <th class="comparativo-sticky-col-header" style="padding: 12px 16px; color: var(--text-muted); text-align: left; min-width: 200px; background: var(--bg-card);">Jogo</th>
     <th style="padding: 12px 16px; color: var(--text-muted); text-align: center; min-width: 100px;">Resultado</th>`;
   
   displayRanking.forEach(u => {
@@ -1091,7 +1091,7 @@ window.renderPastGamesPicks = function() {
       var homeFlag = `<img src="https://flagcdn.com/w20/${m.home.code}.png" style="width: 20px; vertical-align: middle;">`;
       var awayFlag = `<img src="https://flagcdn.com/w20/${m.away.code}.png" style="width: 20px; vertical-align: middle;">`;
 
-      tbodyHtml += `<td style="padding: 12px 16px; position: sticky; left: 0; background: var(--bg-card); z-index: 1;">
+      tbodyHtml += `<td class="comparativo-sticky-col-cell" style="padding: 12px 16px; background: var(--bg-card);">
         <div style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem;">
           ${homeFlag} <span>${homeTeam}</span> <span style="color: var(--text-muted);">x</span> <span>${awayTeam}</span> ${awayFlag}
         </div>
