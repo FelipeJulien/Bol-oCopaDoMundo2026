@@ -489,6 +489,49 @@ const dbAPI = {
             usersPicksMap[userDoc.id] = picksData;
           }
 
+          // Fase 1: Histórico Diário de Pontos e Rankings
+          const agora = new Date();
+          function isMatchFinished(m, resObj) {
+            if (!resObj || resObj.home === undefined) return false;
+            if (resObj.canceled) return true;
+            var isFinAPI = resObj.status === 'finished';
+            var mEnd = new Date(m.date.getTime() + 120 * 60 * 1000);
+            return isFinAPI || (agora > mEnd && resObj.status !== 'live');
+          }
+          
+          const finishedMatches = ALL_MATCHES.filter(m => isMatchFinished(m, results[m.id]));
+          const daysSet = new Set(finishedMatches.map(m => m.dateStr));
+          const daysList = Array.from(daysSet).sort();
+          
+          const userDailyPoints = {};
+          usersSnap.docs.forEach(uDoc => {
+             userDailyPoints[uDoc.id] = {};
+             let runningPts = 0;
+             daysList.forEach(day => {
+                finishedMatches.filter(m => m.dateStr === day).forEach(m => {
+                   const r = results[m.id];
+                   const p = usersPicksMap[uDoc.id][m.id];
+                   if (r && p && r.home !== undefined && p.home !== undefined) {
+                       let mPts = 0;
+                       if (p.home === r.home && p.away === r.away) mPts = 3;
+                       else if ((p.home > p.away && r.home > r.away) || (p.home < p.away && r.home < r.away) || (p.home === p.away && r.home === r.away)) mPts = 1;
+                       if (p.isCuringa) mPts *= 2;
+                       runningPts += mPts;
+                   }
+                });
+                userDailyPoints[uDoc.id][day] = runningPts;
+             });
+          });
+          
+          const dailyRankings = {};
+          daysList.forEach(day => {
+             const sortedUsers = usersSnap.docs.map(d => d.id).sort((a, b) => userDailyPoints[b][day] - userDailyPoints[a][day]);
+             dailyRankings[day] = {};
+             sortedUsers.forEach((uid, index) => {
+                 dailyRankings[day][uid] = index + 1;
+             });
+          });
+
           const ranking = [];
           for (let userDoc of usersSnap.docs) {
             const userData = userDoc.data();
@@ -538,7 +581,7 @@ const dbAPI = {
             ALL_MATCHES.forEach(function(m) {
               const r = results[m.id];
               const p = picksData[m.id];
-              if (r && r.home !== undefined && p && p.home !== undefined) {
+              if (r && r.home !== undefined && p && p.home !== undefined && isMatchFinished(m, r)) {
                 let isExact = false;
                 let isWinner = false;
                 if (p.home === r.home && p.away === r.away) isExact = true;
@@ -799,6 +842,61 @@ const dbAPI = {
             if (hasIgualChatGPT) userBadgesMap.set('igual_chatgpt', ALL_POSSIBLE_BADGES['igual_chatgpt']);
             if (hasTelepata) userBadgesMap.set('telepata', ALL_POSSIBLE_BADGES['telepata']);
             if (hasCampeaoAntecipado) userBadgesMap.set('campeao_antecipado', ALL_POSSIBLE_BADGES['campeao_antecipado']);
+
+            // Troféus Dinâmicos Automáticos
+            let hasLider = manualBadges.includes('lider');
+            let liderDays = 0;
+            let hasViceEterno = manualBadges.includes('vice_eterno');
+            let viceStreak = 0;
+            let hasCraque = manualBadges.includes('craque_rodada');
+            let hasVirada = manualBadges.includes('virada_epica');
+
+            if (!hasLider || !hasViceEterno || !hasCraque || !hasVirada) {
+                daysList.forEach((day, idx) => {
+                    if (hasLider && hasViceEterno && hasCraque && hasVirada) return; // Optimization break
+
+                    const pos = dailyRankings[day][userDoc.id];
+                    const prevDay = idx > 0 ? daysList[idx-1] : null;
+                    const prevPos = prevDay ? dailyRankings[prevDay][userDoc.id] : null;
+                    const dailyPts = userDailyPoints[userDoc.id][day] - (prevDay ? userDailyPoints[userDoc.id][prevDay] : 0);
+
+                    // Líder: 3x em 1º
+                    if (!hasLider && pos === 1) {
+                        liderDays++;
+                        if (liderDays >= 3) hasLider = true;
+                    }
+
+                    // Vice Eterno: 3x seguidas em 2º
+                    if (!hasViceEterno) {
+                        if (pos === 2) {
+                            viceStreak++;
+                            if (viceStreak >= 3) hasViceEterno = true;
+                        } else {
+                            viceStreak = 0;
+                        }
+                    }
+
+                    // Virada Épica: subiu 5 posições
+                    if (!hasVirada && prevPos !== null) {
+                        if (prevPos - pos >= 5) hasVirada = true;
+                    }
+
+                    // Craque da Rodada: maior pontuação do dia
+                    if (!hasCraque && dailyPts > 0) {
+                        let maxDayPts = 0;
+                        usersSnap.docs.forEach(u => {
+                            const uPts = userDailyPoints[u.id][day] - (prevDay ? userDailyPoints[u.id][prevDay] : 0);
+                            if (uPts > maxDayPts) maxDayPts = uPts;
+                        });
+                        if (dailyPts === maxDayPts) hasCraque = true;
+                    }
+                });
+            }
+
+            if (hasLider) userBadgesMap.set('lider', ALL_POSSIBLE_BADGES['lider']);
+            if (hasViceEterno) userBadgesMap.set('vice_eterno', ALL_POSSIBLE_BADGES['vice_eterno']);
+            if (hasCraque) userBadgesMap.set('craque_rodada', ALL_POSSIBLE_BADGES['craque_rodada']);
+            if (hasVirada) userBadgesMap.set('virada_epica', ALL_POSSIBLE_BADGES['virada_epica']);
 
             let badges = Array.from(userBadgesMap.values());
 
