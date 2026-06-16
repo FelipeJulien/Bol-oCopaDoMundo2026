@@ -650,7 +650,6 @@ const dbAPI = {
             let countZebraTotal = 0;
             let alienigenaCount = 0;
             let goleiroHits = 0;
-            let hatTrickHits = 0;
             let azaradoHits = 0;
             let botHits = 0;
             let telepataMatchCount = {};
@@ -742,10 +741,6 @@ const dbAPI = {
 
               if (um.exact && (um.pick.home + um.pick.away <= 1)) goleiroHits++;
 
-              if (um.winner && (um.result.home >= 3 || um.result.away >= 3)) {
-                  hatTrickHits++;
-              }
-
               if (!um.exact) {
                   const errGols = Math.abs(um.pick.home - um.result.home) + Math.abs(um.pick.away - um.result.away);
                   if (errGols === 1) azaradoHits++;
@@ -836,7 +831,7 @@ const dbAPI = {
             let hasAnarquista = totalBets > 0 && (countZebraTotal / totalBets) >= 0.50;
             let hasAlien = alienigenaCount >= 3;
             let hasGoleiro = goleiroHits >= 5;
-            let hasHatTrick = hatTrickHits > 0;
+            let hasHatTrick = manualBadges.includes('hat_trick');
             let hasAzarado = azaradoHits >= 5;
             let hasIgualChatGPT = botHits >= 3;
             let hasTelepata = Object.values(telepataMatchCount).some(v => v >= 5);
