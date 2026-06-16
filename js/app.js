@@ -498,15 +498,12 @@ async function loadUserData() {
       answeredCount++;
       // Usuário respondeu
       input.value = userAnswer;
-      input.disabled = true;
       card.classList.add('status-filled');
-      if (btn) btn.innerHTML = 'Confirmado ✓';
       
       // Atualiza dropdown customizado se for campeao ou decepcao
       if (cat === 'campeao' || cat === 'decepcao') {
         var trigger = document.getElementById('trigger-' + cat);
         if (trigger) {
-          trigger.style.pointerEvents = 'none'; // disable
           var team = Object.values(TEAM_MAP).find(t => t.name === userAnswer);
           if (team) {
             document.getElementById('value-' + cat).innerHTML = '<img src="https://flagcdn.com/w20/' + team.code + '.png" alt="flag"><span>' + team.name + '</span>';
@@ -520,8 +517,27 @@ async function loadUserData() {
         if (toggleParent) {
           toggleParent.querySelectorAll('.toggle-option').forEach(opt => {
             if (opt.getAttribute('data-val') === userAnswer) opt.classList.add('active');
-            opt.disabled = true;
           });
+        }
+      }
+
+      if (isDeadlinePassed) {
+        input.disabled = true;
+        if (btn) btn.style.display = 'none';
+        if (cat === 'campeao' || cat === 'decepcao') {
+          var trigger = document.getElementById('trigger-' + cat);
+          if (trigger) trigger.style.pointerEvents = 'none';
+        }
+        if (cat === 'neymar_gol') {
+          var toggleParent = document.getElementById('toggle-neymar_gol');
+          if (toggleParent) {
+            toggleParent.querySelectorAll('.toggle-option').forEach(opt => opt.disabled = true);
+          }
+        }
+      } else {
+        if (btn) {
+          btn.style.display = 'block';
+          btn.innerHTML = 'Atualizar';
         }
       }
       
@@ -2166,14 +2182,7 @@ function initApp() {
     if (currentUser) {
        const myData = globalRanking.find(u => u.id === currentUser);
        if (myData) {
-          const streakBadge = document.getElementById('hot-streak-badge');
-          const streakCount = document.getElementById('hot-streak-count');
-          if (myData.currentHitStreak >= 3) {
-             streakBadge.classList.remove('hidden');
-             streakCount.innerText = myData.currentHitStreak;
-          } else {
-             streakBadge.classList.add('hidden');
-          }
+          // Hot streak removido
        }
     }
     

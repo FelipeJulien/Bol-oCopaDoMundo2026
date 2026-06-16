@@ -1104,9 +1104,7 @@ h1, h2, h3, h4, .condensed {
 .bonus-card.status-filled:hover {
   background-color: #064e3b;
 }
-.bonus-card.status-filled .btn-bonus-confirm {
-  display: none;
-}
+/* btn-bonus-confirm visibility controlled by JS depending on deadline */
 .bonus-card.status-filled .bc-status-badge.show-filled {
   display: block;
   background-color: rgba(34, 197, 94, 0.2);
