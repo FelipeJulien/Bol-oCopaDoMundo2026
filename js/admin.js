@@ -336,7 +336,7 @@ function renderUsuarios() {
         <td>
           <button class="btn-admin" onclick="filtrarApostasUsuario('${user.id}')" style="margin-right:8px; margin-bottom:4px;">Ver Apostas</button>
           <button class="btn-admin secondary" onclick="definirPontos('${user.id}', '${(user.nickname || user.name)}', ${user.pontos_ajuste})" style="margin-right:8px; margin-bottom:4px; background:var(--admin-success); color:white; border:none;">Definir Pontos</button>
-          <button class="btn-admin" onclick="resetarCuringa('${user.id}')" style="margin-right:8px; margin-bottom:4px; background:#eab308; color:black; border:none;">Resetar Curinga</button>
+          <button class="btn-admin" onclick="resetarCuringa('${user.id}')" style="margin-right:8px; margin-bottom:4px; background:#eab308; color:black; border:none;">Resetar Coringas</button>
           <button class="btn-admin" onclick="darTrofeuManual('${user.id}', '${(user.nickname || user.name)}')" style="margin-right:8px; margin-bottom:4px; background:#8a2be2; color:white; border:none;">Dar Troféu 🏆</button>
           <button class="btn-admin secondary" onclick="zerarUsuario('${user.id}')" style="margin-right:8px; margin-bottom:4px;">Zerar Pontuação</button>
           <button class="btn-admin danger" onclick="excluirUsuario('${user.id}', '${(user.nickname || user.name)}')" style="margin-bottom:4px;">Excluir Conta</button>
@@ -406,11 +406,11 @@ window.definirPontos = async function(userId, userName, currentAjuste) {
 };
 
 window.resetarCuringa = async function(userId) {
-  if (!confirm("Tem certeza que deseja devolver a carta lendária (2x) para este usuário?\n\nIsso removerá o bônus 2x de TODAS as apostas anteriores dele onde o curinga foi usado, permitindo que ele use novamente.")) return;
+  if (!confirm("Tem certeza que deseja devolver os coringas (2x) para este usuário?\n\nIsso removerá o bônus 2x de TODAS as apostas anteriores dele onde algum coringa foi usado, permitindo que ele use novamente.")) return;
   
   await dbAPI.resetUserCuringa(userId);
-  logAction("Resetar Curinga", `Curinga do usuário ${userId} resetado`, "");
-  showAdminToast("Curinga resetado com sucesso!");
+  logAction("Resetar Coringas", `Coringas do usuário ${userId} resetados`, "");
+  showAdminToast("Coringas resetados com sucesso!");
 };
 
 window.darTrofeuManual = async function(userId, userName) {
