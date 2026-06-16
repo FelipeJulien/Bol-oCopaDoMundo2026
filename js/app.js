@@ -1156,8 +1156,7 @@ window.renderPastGamesPicks = function() {
             color = 'var(--text-primary)';
           }
 
-          var curingaStr = p.curinga ? ' <span title="Coringa Usado">⭐</span>' : '';
-          
+          var curingaStr = p.isCuringa ? ' <span title="Coringa Usado">⭐</span>' : '';
           tbodyHtml += `<td style="padding: 12px 16px; text-align: center; color: ${color}; font-weight: ${fontWeight};">${p.home} x ${p.away}${curingaStr}</td>`;
         }
       });
@@ -2336,7 +2335,7 @@ document.getElementById('btn-export-csv')?.addEventListener('click', function() 
       if (!p || p.home === undefined) {
         row += `,-`;
       } else {
-        var curingaStr = p.curinga ? ' (Coringa)' : '';
+        var curingaStr = p.isCuringa ? ' (Coringa)' : '';
         row += `,"${p.home} x ${p.away}${curingaStr}"`;
       }
     });
