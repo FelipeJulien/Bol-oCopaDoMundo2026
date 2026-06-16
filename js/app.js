@@ -783,7 +783,7 @@ function setupAutoSave() {
       }
     } else if (e.target.classList.contains('toggle-option')) {
       // Bloquear edição se o toggle-option estiver com disabled via CSS pointer-events ou se já foi salvo
-      if (e.target.disabled || e.target.closest('.status-filled') || e.target.closest('.status-expired')) return;
+      if (e.target.disabled || e.target.closest('.status-expired')) return;
       
       var parent = e.target.parentElement;
       parent.querySelectorAll('.toggle-option').forEach(btn => btn.classList.remove('active'));
@@ -1156,7 +1156,7 @@ window.renderPastGamesPicks = function() {
             color = 'var(--text-primary)';
           }
 
-          var curingaStr = ''; // Removido temporariamente para testes
+          var curingaStr = p.curinga ? ' <span title="Coringa Usado">⭐</span>' : '';
           
           tbodyHtml += `<td style="padding: 12px 16px; text-align: center; color: ${color}; font-weight: ${fontWeight};">${p.home} x ${p.away}${curingaStr}</td>`;
         }
@@ -2293,3 +2293,64 @@ document.addEventListener('DOMContentLoaded', function() {
   }, 1000);
 });
 
+// 18. EXPORT CSV Logic
+document.getElementById('btn-export-csv')?.addEventListener('click', function() {
+  if (!globalRanking || !ALL_MATCHES || !globalOfficialResults) return;
+
+  var displayRanking = globalRanking.filter(u => Object.keys(u.picks || {}).length > 0 || u.pts > 0);
+  
+  var agora = new Date();
+  var matchesWithResult = ALL_MATCHES.filter(m => {
+    var res = globalOfficialResults[m.id];
+    var hasResult = res && res.home !== undefined && res.home !== '';
+    return hasResult || m.date <= agora;
+  });
+  matchesWithResult.sort((a, b) => b.date - a.date);
+
+  if (matchesWithResult.length === 0) {
+    alert("Nenhum jogo finalizado para exportar.");
+    return;
+  }
+
+  // Header
+  var csvContent = "Jogo,Resultado Oficial";
+  displayRanking.forEach(u => {
+    csvContent += "," + (u.nickname || u.name).replace(/,/g, '');
+  });
+  csvContent += "\\n";
+
+  // Rows
+  matchesWithResult.forEach(m => {
+    var homeTeam = m.home.name;
+    var awayTeam = m.away.name;
+    var jogo = `${homeTeam} x ${awayTeam}`;
+    
+    var res = globalOfficialResults[m.id] || {};
+    var hasResult = res.home !== undefined && res.home !== '';
+    var placarOficial = hasResult ? `${res.home} x ${res.away}` : 'Aguardando';
+
+    var row = `"${jogo}","${placarOficial}"`;
+
+    displayRanking.forEach(u => {
+      var p = (u.picks && u.picks[m.id]) ? u.picks[m.id] : null;
+      if (!p || p.home === undefined) {
+        row += `,-`;
+      } else {
+        var curingaStr = p.curinga ? ' (Coringa)' : '';
+        row += `,"${p.home} x ${p.away}${curingaStr}"`;
+      }
+    });
+
+    csvContent += row + "\\n";
+  });
+
+  var blob = new Blob(["\\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
+  var link = document.createElement("a");
+  var url = URL.createObjectURL(blob);
+  link.setAttribute("href", url);
+  link.setAttribute("download", "palpites_bolao.csv");
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+});
