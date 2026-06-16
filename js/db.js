@@ -625,7 +625,7 @@ const dbAPI = {
             let countZebraTotal = 0;
             let alienigenaCount = 0;
             let goleiroHits = 0;
-            let exactHitsByDate = {};
+            let hatTrickHits = 0;
             let azaradoHits = 0;
             let botHits = 0;
             let telepataMatchCount = {};
@@ -654,10 +654,10 @@ const dbAPI = {
               if (um.winner) uniqueWinnerHits.add(um.match.id);
               
               if (um.exact) {
+                 alienigenaCount++;
                  const scoreStr = um.pick.home + 'x' + um.pick.away;
                  if (allPicksByMatch[um.match.id] && allPicksByMatch[um.match.id].scores[scoreStr] === 1) {
                    hasSpecialOne = true;
-                   alienigenaCount++;
                  }
               }
               
@@ -717,10 +717,8 @@ const dbAPI = {
 
               if (um.exact && (um.pick.home + um.pick.away <= 1)) goleiroHits++;
 
-              if (um.exact && um.match.date) {
-                  const dateObj = new Date(um.match.date);
-                  const dKey = dateObj.toISOString().split('T')[0];
-                  exactHitsByDate[dKey] = (exactHitsByDate[dKey] || 0) + 1;
+              if (um.winner && (um.result.home >= 3 || um.result.away >= 3)) {
+                  hatTrickHits++;
               }
 
               if (!um.exact) {
@@ -775,10 +773,10 @@ const dbAPI = {
               'virada_epica': { id: 'virada_epica', icon: '🚀', title: 'Virada Épica (Subiu 5+ posições no ranking em uma rodada)' },
               'anarquista': { id: 'anarquista', icon: '🃏', title: 'Anarquista (50%+ dos palpites foram em zebras)' },
               'craque_rodada': { id: 'craque_rodada', icon: '💎', title: 'Craque da Rodada (Maior pontuação numa única rodada)' },
-              'alienigena': { id: 'alienigena', icon: '👽', title: 'Alienígena (Foi o único a acertar o placar 3 vezes)' },
+              'alienigena': { id: 'alienigena', icon: '👽', title: 'Alienígena (Acertou o placar exato 3 vezes)' },
               'vice_eterno': { id: 'vice_eterno', icon: '🥈', title: 'Vice Eterno (Ficou em 2º lugar por 3 rodadas seguidas)' },
               'goleiro': { id: 'goleiro', icon: '🧤', title: 'Goleiro (Acertou 5 jogos com placar de 0 a 0 ou 1 a 0)' },
-              'hat_trick': { id: 'hat_trick', icon: '⚽', title: 'Hat-trick (Acertou 3 placares exatos em um único dia)' },
+              'hat_trick': { id: 'hat_trick', icon: '⚽', title: 'Hat-trick (Acertou o vencedor de um jogo onde houve um hat trick)' },
               'telepata': { id: 'telepata', icon: '🧠', title: 'Telepata (Teve o mesmo palpite exato que outro jogador 5 vezes)' },
               'campeao_antecipado': { id: 'campeao_antecipado', icon: '🏆', title: 'Campeão Antecipado (Apostou no campeão antes do torneio e acertou)' },
               'azarado': { id: 'azarado', icon: '😤', title: 'Azarado (Errou o placar exato por 1 gol 5 vezes)' },
@@ -814,7 +812,7 @@ const dbAPI = {
             let hasAnarquista = totalBets > 0 && (countZebraTotal / totalBets) >= 0.50;
             let hasAlien = alienigenaCount >= 3;
             let hasGoleiro = goleiroHits >= 5;
-            let hasHatTrick = Object.values(exactHitsByDate).some(v => v >= 3);
+            let hasHatTrick = hatTrickHits > 0;
             let hasAzarado = azaradoHits >= 5;
             let hasIgualChatGPT = botHits >= 3;
             let hasTelepata = Object.values(telepataMatchCount).some(v => v >= 5);
