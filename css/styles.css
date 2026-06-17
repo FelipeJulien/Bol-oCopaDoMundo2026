@@ -295,6 +295,8 @@ h1, h2, h3, h4, .condensed {
   display: flex;
   align-items: center;
   gap: 16px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 .user-info {
   display: flex;
@@ -1939,6 +1941,16 @@ h1, h2, h3, h4, .condensed {
   z-index: 3;
   text-align: left;
   min-width: 150px;
+}
+.comparativo-sticky-col-header {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+}
+.comparativo-sticky-col-cell {
+  position: sticky;
+  left: 0;
+  z-index: 1;
 }
 .comparativo-table td.col-user {
   position: sticky;

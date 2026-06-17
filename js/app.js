@@ -1866,9 +1866,10 @@ async function exportPicksToImage() {
   if (!myData) return;
   
   const container = document.getElementById('export-container');
-  container.style.top = '0';
-  container.style.left = '0';
-  container.style.zIndex = '-100'; // kept hidden behind
+  container.style.top = '-9999px';
+  container.style.left = '-9999px';
+  container.style.zIndex = '-9999';
+  container.style.width = '800px'; // kept hidden behind
   
   let html = `<h2 style="text-align:center; color:var(--accent-gold); margin-bottom:20px;">Palpites de ${(myData.nickname || myData.name)}</h2>`;
   html += `<div style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center;">`;
