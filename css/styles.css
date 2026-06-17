@@ -340,12 +340,12 @@ h1, h2, h3, h4, .condensed {
 }
 .tabs-nav::-webkit-scrollbar { display: none; }
 .tab-btn {
-  padding: 16px 24px;
+  padding: 16px 14px;
   color: var(--text-muted);
   font-family: 'Inter', sans-serif;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 500;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
   border-bottom: 3px solid transparent;
   white-space: nowrap;
   transition: var(--transition);
