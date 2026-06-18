@@ -751,11 +751,11 @@ function setupAutoSave() {
         return;
       }
 
-      // Validar prazo consultando localmente official_results
-      let localOfficial = JSON.parse(localStorage.getItem('official_results') || '{}');
-      let officialCount = Object.keys(localOfficial).filter(k => localOfficial[k].home !== undefined).length;
-      if (officialCount >= 24) {
-         alert("O prazo para enviar palpites bônus já encerrou (a 1ª rodada terminou)!");
+      // Validar prazo
+      var deadlineDate = new Date('2026-06-18T16:00:00-03:00');
+      var isDeadlinePassed = new Date() > deadlineDate;
+      if (isDeadlinePassed) {
+         alert("O prazo para enviar palpites bônus já encerrou (18/06 às 16:00)!");
          input.disabled = true;
          return;
       }
