@@ -448,11 +448,10 @@ document.getElementById('btn-save-trofeu').addEventListener('click', async () =>
   btn.disabled = false;
 });
 
-document.getElementById('btn-recalc-all').addEventListener('click', () => {
-  // Since db.js listenToUpdates already fetches ALL users and ALL results and calculates them, 
-  // simply resaving a dummy meta triggers the recalculation for everyone.
+document.getElementById('btn-recalc-all').addEventListener('click', async () => {
+  await dbAPI.recalculateGlobalRanking(null, true);
   logAction("Recalcular Geral", "Forçou o recálculo do ranking", "");
-  showAdminToast("O ranking já é calculado dinamicamente na nuvem! Está 100% atualizado.");
+  showAdminToast("Ranking recalculado com sucesso!");
 });
 
 document.getElementById('btn-export-csv').addEventListener('click', () => {
@@ -628,7 +627,7 @@ document.getElementById('btn-save-edit').addEventListener('click', async () => {
   }
   
   await dbAPI.savePick(userId, userName, matchId, h, a, isCuringa);
-  await dbAPI.recalculateGlobalRanking();
+  await dbAPI.recalculateGlobalRanking(null, true);
   logAction("Editar Aposta", `Aposta do usuário ${userId} no jogo ${matchId} alterada para ${h}x${a}`, "");
   
   // Update local cache so UI updates immediately

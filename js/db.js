@@ -404,7 +404,7 @@ const dbAPI = {
       const dbData = (row && row.data) ? row.data : {};
       Object.assign(dbData, resultsObj);
       await window.supabaseClient.from('meta').upsert({ id: 'results', data: dbData });
-      await dbAPI.recalculateGlobalRanking();
+      await dbAPI.recalculateGlobalRanking(dbData, true);
     }
   },
 
@@ -417,7 +417,7 @@ const dbAPI = {
       const dbData = (row && row.data) ? row.data : {};
       delete dbData[matchId];
       await window.supabaseClient.from('meta').upsert({ id: 'results', data: dbData }).catch(e => console.log(e));
-      await dbAPI.recalculateGlobalRanking();
+      await dbAPI.recalculateGlobalRanking(dbData, true);
     }
   },
 
@@ -432,7 +432,7 @@ const dbAPI = {
   },
 
   
-  recalculateGlobalRanking: async (results) => {
+  recalculateGlobalRanking: async (results, force = false) => {
     if (!window.supabaseClient) return;
     if (!results) results = await dbAPI.getResults();
     try {
@@ -441,7 +441,7 @@ const dbAPI = {
         const { data: lockRow } = await window.supabaseClient.from('meta').select('data').eq('id', 'ranking_lock').single();
         const lastCalc = (lockRow && lockRow.data && lockRow.data.updatedAt) ? new Date(lockRow.data.updatedAt).getTime() : 0;
         const now = Date.now();
-        if (now - lastCalc < 30000) {
+        if (!force && now - lastCalc < 30000) {
             console.log("Ranking already recalculated recently by another client.");
             return;
         }
