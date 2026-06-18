@@ -1575,7 +1575,7 @@ const ALL_POSSIBLE_BADGES = [
   { id: 'contra_tudo', icon: '🎲', title: 'Contra Tudo e Todos', desc: 'Acertou o exato apostando diferente de 90%+ dos jogadores' },
   { id: 'dupla_personalidade', icon: '🎭', title: 'Dupla Personalidade', desc: 'Apostou em placares completamente opostos em dois jogos seguidos e acertou os dois' },
   { id: 'palhaco', icon: '🤡', title: 'Palhaço', desc: 'Errou todos os palpites de uma rodada inteira' },
-  { id: 'lenda', icon: '🌟', title: 'Lenda', desc: 'Ficou no top 3 do ranking durante todo o torneio sem cair' }
+  { id: 'lenda', icon: '🌟', title: 'Lenda', desc: 'Nunca saiu do Top 3 desde o início do torneio (mín. 5 dias)' }
 ];
 
 function renderSalaTrofeus(myData) {

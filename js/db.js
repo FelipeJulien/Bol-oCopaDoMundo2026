@@ -850,7 +850,7 @@ const dbAPI = {
               'contra_tudo': { id: 'contra_tudo', icon: '🎲', title: 'Contra Tudo e Todos (Acertou o exato apostando diferente de 90%+ dos jogadores)' },
               'dupla_personalidade': { id: 'dupla_personalidade', icon: '🎭', title: 'Dupla Personalidade (Apostou em placares completamente opostos em dois jogos seguidos e acertou os dois)' },
               'palhaco': { id: 'palhaco', icon: '🤡', title: 'Palhaço (Errou todos os palpites de uma rodada inteira)' },
-              'lenda': { id: 'lenda', icon: '🌟', title: 'Lenda (Ficou no top 3 do ranking durante todo o torneio sem cair)' }
+              'lenda': { id: 'lenda', icon: '🌟', title: 'Lenda (Nunca saiu do Top 3 desde o início do torneio - mín. 5 dias)' }
             };
 
             let userBadgesMap = new Map();
