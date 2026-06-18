@@ -2423,6 +2423,48 @@ h1, h2, h3, h4, .condensed {
   box-shadow: 0 0 20px rgba(139, 0, 0, 0.7);
 }
 
+
+.trophy-unlocked[data-id='ima_zebra'] {
+  border-color: #4169e1;
+  box-shadow: 0 0 20px rgba(65, 105, 225, 0.7);
+}
+.trophy-unlocked[data-id='montanha_russa'] {
+  border-color: #ff4500;
+  box-shadow: 0 0 20px rgba(255, 69, 0, 0.7);
+}
+.trophy-unlocked[data-id='arqueiro'] {
+  border-color: #228b22;
+  box-shadow: 0 0 20px rgba(34, 139, 34, 0.7);
+}
+.trophy-unlocked[data-id='condecorado'] {
+  border-color: #ffd700;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.7);
+}
+.trophy-unlocked[data-id='raposa'] {
+  border-color: #ff6347;
+  box-shadow: 0 0 20px rgba(255, 99, 71, 0.7);
+}
+.trophy-unlocked[data-id='peso_pesado'] {
+  border-color: #8b4513;
+  box-shadow: 0 0 20px rgba(139, 69, 19, 0.7);
+}
+.trophy-unlocked[data-id='astronomo'] {
+  border-color: #483d8b;
+  box-shadow: 0 0 20px rgba(72, 61, 139, 0.7);
+}
+.trophy-unlocked[data-id='elefante'] {
+  border-color: #708090;
+  box-shadow: 0 0 20px rgba(112, 128, 144, 0.7);
+}
+.trophy-unlocked[data-id='orbita'] {
+  border-color: #9370db;
+  box-shadow: 0 0 20px rgba(147, 112, 219, 0.7);
+}
+.trophy-unlocked[data-id='enxame'] {
+  border-color: #daa520;
+  box-shadow: 0 0 20px rgba(218, 165, 32, 0.7);
+}
+
 /* GOAL NOTIFICATION */
 .goal-notification {
   position: fixed;

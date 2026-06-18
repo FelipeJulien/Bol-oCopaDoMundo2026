@@ -1579,7 +1579,17 @@ const ALL_POSSIBLE_BADGES = [
   { id: 'muralha', icon: '🧱', title: 'Muralha', desc: 'Acertou 5 placares com 0 gols do time perdedor' },
   { id: 'rei_da_selva', icon: '🦁', title: 'Rei da Selva', desc: 'Ficou em 1º por mais de 10 rodadas acumuladas no torneio' },
   { id: 'popularidade', icon: '🫂', title: 'Popularidade', desc: 'Teve o palpite mais escolhido pelo bolão em 5 jogos diferentes' },
-  { id: 'kamikaze', icon: '💣', title: 'Kamikaze', desc: 'Usou o multiplicador num jogo de zebra e acertou o placar exato' }
+  { id: 'kamikaze', icon: '💣', title: 'Kamikaze', desc: 'Usou o multiplicador num jogo de zebra e acertou o placar exato' },
+  { id: 'ima_zebra', icon: '🧲', title: 'Ímã de Zebra', desc: 'Apostou em zebra e acertou o exato 3 vezes no torneio' },
+  { id: 'montanha_russa', icon: '🎡', title: 'Montanha Russa', desc: 'Subiu e desceu mais de 3 posições no ranking em rodadas alternadas' },
+  { id: 'arqueiro', icon: '🏹', title: 'Arqueiro', desc: 'Acertou o placar exato sem errar o vencedor em nenhum dos últimos 5 jogos' },
+  { id: 'condecorado', icon: '🎖️', title: 'Condecorado', desc: 'Desbloqueou 10 troféus ao longo do torneio' },
+  { id: 'raposa', icon: '🦊', title: 'Raposa', desc: 'Acertou o vencedor de 10 jogos seguidos sem errar' },
+  { id: 'peso_pesado', icon: '🏋️', title: 'Peso Pesado', desc: 'Acumulou mais de 50 pontos no total durante o torneio' },
+  { id: 'astronomo', icon: '🔭', title: 'Astrônomo', desc: 'Apostou em 3 resultados considerados impossíveis e acertou pelo menos 1 exato' },
+  { id: 'elefante', icon: '🐘', title: 'Memória de Elefante', desc: 'Apostou o mesmo placar que já tinha acertado antes e acertou de novo' },
+  { id: 'orbita', icon: '🪐', title: 'Órbita', desc: 'Ficou sempre entre a 3ª e 5ª posição por 5 rodadas sem sair' },
+  { id: 'enxame', icon: '🐝', title: 'Enxame', desc: 'Teve o mesmo palpite que pelo menos 5 jogadores diferentes e acertou o exato' }
 ];
 
 function renderSalaTrofeus(myData) {

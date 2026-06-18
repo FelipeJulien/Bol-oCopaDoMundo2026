@@ -659,6 +659,12 @@ const dbAPI = {
             
             let currentWinnerStreak = 0;
             let maxWinnerStreak = 0;
+            let zebraExatasCount = 0;
+            let impossiveisBet = 0;
+            let impossiveisExact = 0;
+            let exactHitsList = [];
+            let hasElefante = false;
+            let hasEnxame = false;
             let betOnBrazilAndWonAll = true;
             let hasPlayedBrazil = false;
             let drawBetsCount = 0;
@@ -677,6 +683,13 @@ const dbAPI = {
                 maxExactStreak = Math.max(maxExactStreak, currentExactStreak);
               } else {
                 currentExactStreak = 0;
+              }
+              
+              if (um.winner) {
+                currentWinnerStreak++;
+                maxWinnerStreak = Math.max(maxWinnerStreak, currentWinnerStreak);
+              } else {
+                currentWinnerStreak = 0;
               }
 
               if (um.pts === 0) {
@@ -732,6 +745,14 @@ const dbAPI = {
                  if (allPicksByMatch[um.match.id] && allPicksByMatch[um.match.id].scores[scoreStr] === 1) {
                    hasSpecialOne = true;
                  }
+                 if (exactHitsList.includes(scoreStr)) hasElefante = true;
+                 else exactHitsList.push(scoreStr);
+                 
+                 const cStatsExact = allPicksByMatch[um.match.id];
+                 if (cStatsExact && cStatsExact.scores[scoreStr] >= 6) {
+                     hasEnxame = true;
+                 }
+                 
                  let kickAlsoExact = false;
                  kickUserIds.forEach(kId => {
                      if (kId !== userDoc.id) {
@@ -782,6 +803,15 @@ const dbAPI = {
                    if (um.pick.home > um.pick.away) pickType = 'home';
                    else if (um.pick.home < um.pick.away) pickType = 'away';
                    else pickType = 'draw';
+                   
+                   const scoreStrC = um.pick.home + 'x' + um.pick.away;
+                   const betPctExact = (cStats.scores[scoreStrC] || 0) / cStats.total;
+                   
+                   if (betPctExact < 0.20 && um.exact) zebraExatasCount++;
+                   if (betPctExact < 0.05) {
+                       impossiveisBet++;
+                       if (um.exact) impossiveisExact++;
+                   }
                    
                    const pct = cStats[pickType] / cStats.total;
                    if (pct <= 0.20) hasZebra = true;
@@ -896,7 +926,17 @@ const dbAPI = {
               'muralha': { id: 'muralha', icon: '🧱', title: 'Muralha (Acertou 5 placares com 0 gols do time perdedor)' },
               'rei_da_selva': { id: 'rei_da_selva', icon: '🦁', title: 'Rei da Selva (Ficou em 1º por mais de 10 rodadas acumuladas no torneio)' },
               'popularidade': { id: 'popularidade', icon: '🫂', title: 'Popularidade (Teve o palpite mais escolhido pelo bolão em 5 jogos diferentes)' },
-              'kamikaze': { id: 'kamikaze', icon: '💣', title: 'Kamikaze (Usou o multiplicador num jogo de zebra e acertou o placar exato)' }
+              'kamikaze': { id: 'kamikaze', icon: '💣', title: 'Kamikaze (Usou o multiplicador num jogo de zebra e acertou o placar exato)' },
+              'ima_zebra': { id: 'ima_zebra', icon: '🧲', title: 'Ímã de Zebra (Apostou em zebra e acertou o exato 3 vezes no torneio)' },
+              'montanha_russa': { id: 'montanha_russa', icon: '🎡', title: 'Montanha Russa (Subiu e desceu mais de 3 posições no ranking em rodadas alternadas)' },
+              'arqueiro': { id: 'arqueiro', icon: '🏹', title: 'Arqueiro (Acertou o placar exato sem errar o vencedor em nenhum dos últimos 5 jogos)' },
+              'condecorado': { id: 'condecorado', icon: '🎖️', title: 'Condecorado (Desbloqueou 10 troféus ao longo do torneio)' },
+              'raposa': { id: 'raposa', icon: '🦊', title: 'Raposa (Acertou o vencedor de 10 jogos seguidos sem errar)' },
+              'peso_pesado': { id: 'peso_pesado', icon: '🏋️', title: 'Peso Pesado (Acumulou mais de 50 pontos no total durante o torneio)' },
+              'astronomo': { id: 'astronomo', icon: '🔭', title: 'Astrônomo (Apostou em 3 resultados considerados impossíveis e acertou pelo menos 1 exato)' },
+              'elefante': { id: 'elefante', icon: '🐘', title: 'Memória de Elefante (Apostou o mesmo placar que já tinha acertado antes e acertou de novo)' },
+              'orbita': { id: 'orbita', icon: '🪐', title: 'Órbita (Ficou sempre entre a 3ª e 5ª posição por 5 rodadas sem sair)' },
+              'enxame': { id: 'enxame', icon: '🐝', title: 'Enxame (Teve o mesmo palpite que pelo menos 5 jogadores diferentes e acertou o exato)' }
             };
 
             let userBadgesMap = new Map();
@@ -955,6 +995,42 @@ const dbAPI = {
                     }
                 }
             }
+            
+            let orbitaStreak = 0;
+            let maxOrbitaStreak = 0;
+            let subiuMaisDe3 = false;
+            let desceuMaisDe3 = false;
+            let prevRank = null;
+            for (let day of daysList) {
+                if (dailyRankings[day]) {
+                    let rank = dailyRankings[day][userDoc.id];
+                    if (rank >= 3 && rank <= 5) orbitaStreak++;
+                    else orbitaStreak = 0;
+                    if (orbitaStreak > maxOrbitaStreak) maxOrbitaStreak = orbitaStreak;
+                    
+                    if (prevRank !== null) {
+                        let diff = prevRank - rank;
+                        if (diff > 3) subiuMaisDe3 = true;
+                        if (diff < -3) desceuMaisDe3 = true;
+                    }
+                    prevRank = rank;
+                }
+            }
+            let hasOrbita = maxOrbitaStreak >= 5;
+            let hasMontanhaRussa = subiuMaisDe3 && desceuMaisDe3;
+            
+            let hasArqueiro = false;
+            if (userFinishedMatches.length >= 5) {
+                let last5 = userFinishedMatches.slice(-5);
+                let allWinners = last5.every(m => m.winner);
+                let anyExact = last5.some(m => m.exact);
+                if (allWinners && anyExact) hasArqueiro = true;
+            }
+            
+            let hasPesoPesado = pts > 50;
+            let hasAstronomo = impossiveisBet >= 3 && impossiveisExact >= 1;
+            let hasRaposa = maxWinnerStreak >= 10;
+            let hasImaZebra = zebraExatasCount >= 3;
 
             if (hasEmChamas) userBadgesMap.set('em_chamas', ALL_POSSIBLE_BADGES['em_chamas']);
             if (hasFiel) userBadgesMap.set('fiel', ALL_POSSIBLE_BADGES['fiel']);
@@ -983,6 +1059,15 @@ const dbAPI = {
             if (hasReiDaSelva) userBadgesMap.set('rei_da_selva', ALL_POSSIBLE_BADGES['rei_da_selva']);
             if (popularidadeCount >= 5) userBadgesMap.set('popularidade', ALL_POSSIBLE_BADGES['popularidade']);
             if (hasKamikaze) userBadgesMap.set('kamikaze', ALL_POSSIBLE_BADGES['kamikaze']);
+            if (hasImaZebra) userBadgesMap.set('ima_zebra', ALL_POSSIBLE_BADGES['ima_zebra']);
+            if (hasMontanhaRussa) userBadgesMap.set('montanha_russa', ALL_POSSIBLE_BADGES['montanha_russa']);
+            if (hasArqueiro) userBadgesMap.set('arqueiro', ALL_POSSIBLE_BADGES['arqueiro']);
+            if (hasRaposa) userBadgesMap.set('raposa', ALL_POSSIBLE_BADGES['raposa']);
+            if (hasPesoPesado) userBadgesMap.set('peso_pesado', ALL_POSSIBLE_BADGES['peso_pesado']);
+            if (hasAstronomo) userBadgesMap.set('astronomo', ALL_POSSIBLE_BADGES['astronomo']);
+            if (hasElefante) userBadgesMap.set('elefante', ALL_POSSIBLE_BADGES['elefante']);
+            if (hasOrbita) userBadgesMap.set('orbita', ALL_POSSIBLE_BADGES['orbita']);
+            if (hasEnxame) userBadgesMap.set('enxame', ALL_POSSIBLE_BADGES['enxame']);
 
             // Troféus Dinâmicos Automáticos
             let hasLider = manualBadges.includes('lider');
@@ -1038,6 +1123,10 @@ const dbAPI = {
             if (hasViceEterno) userBadgesMap.set('vice_eterno', ALL_POSSIBLE_BADGES['vice_eterno']);
             if (hasCraque) userBadgesMap.set('craque_rodada', ALL_POSSIBLE_BADGES['craque_rodada']);
             if (hasVirada) userBadgesMap.set('virada_epica', ALL_POSSIBLE_BADGES['virada_epica']);
+
+            if (userBadgesMap.size >= 10) {
+                userBadgesMap.set('condecorado', ALL_POSSIBLE_BADGES['condecorado']);
+            }
 
             let badges = Array.from(userBadgesMap.values());
 
