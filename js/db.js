@@ -452,6 +452,7 @@ const dbAPI = {
         const usersPicksMap = {};
         const allPicksByMatch = {};
         const botUserIds = [];
+        const kickUserIds = [];
           
           // First Pass: Load all picks and calculate community stats
           for (let userDoc of usersSnap.docs) {
@@ -460,6 +461,9 @@ const dbAPI = {
                const nLower = uData.name.toLowerCase();
                if (nLower.includes("chatgpt") || nLower.includes("claude") || nLower.includes("gemini") || nLower.includes("grok")) {
                   botUserIds.push(userDoc.id);
+               }
+               if (nLower.includes("kick") || (uData.nickname && uData.nickname.toLowerCase().includes("kick"))) {
+                  kickUserIds.push(userDoc.id);
                }
             }
             const picksData = uData.picks || {};
@@ -613,6 +617,7 @@ const dbAPI = {
             let uniqueWinnerHits = new Set();
             let hasPatriota = false;
             let hasSpecialOne = false;
+            let hasExorcista = false;
 
             // New Trophy Variables
             let currentWinnerStreak = 0;
@@ -657,6 +662,18 @@ const dbAPI = {
                  const scoreStr = um.pick.home + 'x' + um.pick.away;
                  if (allPicksByMatch[um.match.id] && allPicksByMatch[um.match.id].scores[scoreStr] === 1) {
                    hasSpecialOne = true;
+                 }
+                 let kickAlsoExact = false;
+                 kickUserIds.forEach(kId => {
+                     if (kId !== userDoc.id) {
+                         let kPick = usersPicksMap[kId][um.match.id];
+                         if (kPick && kPick.home === um.pick.home && kPick.away === um.pick.away) {
+                             kickAlsoExact = true;
+                         }
+                     }
+                 });
+                 if (kickAlsoExact) {
+                     hasExorcista = true;
                  }
               }
               
@@ -775,7 +792,8 @@ const dbAPI = {
               'telepata': { id: 'telepata', icon: '🧠', title: 'Telepata (Teve o mesmo palpite exato que outro jogador 5 vezes)' },
               'campeao_antecipado': { id: 'campeao_antecipado', icon: '🏆', title: 'Campeão Antecipado (Apostou no campeão antes do torneio e acertou)' },
               'azarado': { id: 'azarado', icon: '😤', title: 'Azarado (Errou o placar exato por 1 gol 5 vezes)' },
-              'igual_chatgpt': { id: 'igual_chatgpt', icon: '🤖', title: 'Igual ao ChatGPT (Teve o mesmo palpite que os perfis das IA em 3 jogos)' }
+              'igual_chatgpt': { id: 'igual_chatgpt', icon: '🤖', title: 'Igual ao ChatGPT (Teve o mesmo palpite que os perfis das IA em 3 jogos)' },
+              'exorcista': { id: 'exorcista', icon: '🧿', title: 'Exorcista (Cravou o placar exato no mesmo jogo que o Kick)' }
             };
 
             let userBadgesMap = new Map();
@@ -828,6 +846,7 @@ const dbAPI = {
             if (hasIgualChatGPT) userBadgesMap.set('igual_chatgpt', ALL_POSSIBLE_BADGES['igual_chatgpt']);
             if (hasTelepata) userBadgesMap.set('telepata', ALL_POSSIBLE_BADGES['telepata']);
             if (hasCampeaoAntecipado) userBadgesMap.set('campeao_antecipado', ALL_POSSIBLE_BADGES['campeao_antecipado']);
+            if (hasExorcista) userBadgesMap.set('exorcista', ALL_POSSIBLE_BADGES['exorcista']);
 
             // Troféus Dinâmicos Automáticos
             let hasLider = manualBadges.includes('lider');
