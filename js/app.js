@@ -462,15 +462,16 @@ async function loadUserData() {
   renderBetResults(data.picks, officialResults);
   
   // Lógica de Previsões Bônus
-  // Novo prazo: fim da 1ª rodada (quando 24 jogos tiverem resultado oficial)
+  // Novo prazo: 18/06/2026 às 16:00
+  var deadlineDate = new Date('2026-06-18T16:00:00-03:00');
+  var isDeadlinePassed = new Date() > deadlineDate;
   var officialResultsCount = Object.keys(officialResults).filter(k => officialResults[k].home !== undefined).length;
-  var isDeadlinePassed = officialResultsCount >= 24;
   
   // Atualiza o texto do indicador
   var progressIndicator = document.getElementById('bonus-progress-indicator');
   if (progressIndicator) {
-    progressIndicator.innerText = `Rodada 1 em andamento: ${officialResultsCount} de 24 jogos concluídos`;
-    if (isDeadlinePassed) progressIndicator.innerText = `Prazo encerrado (${officialResultsCount} jogos concluídos)`;
+    progressIndicator.innerText = `Prazo estendido: Aberto até 18/06 às 16:00`;
+    if (isDeadlinePassed) progressIndicator.innerText = `Prazo encerrado (18/06 às 16:00)`;
   }
 
   var bonusCategories = ['campeao', 'artilheiro', 'craque', 'goleiro', 'defensor', 'revelacao', 'decepcao', 'neymar_gol'];
