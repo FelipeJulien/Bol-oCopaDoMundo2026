@@ -110,7 +110,7 @@ document.getElementById('btn-pin-create').addEventListener('click', async () => 
   const errorEl = document.getElementById('pin-create-error');
   
   if (pin.length < 4) {
-    errorEl.textContent = 'O PIN deve ter pelo menos 4 caracteres.';
+    errorEl.textContent = 'O código deve ter pelo menos 4 caracteres.';
     errorEl.style.display = 'block';
     return;
   }
@@ -130,7 +130,7 @@ document.getElementById('btn-pin-create').addEventListener('click', async () => 
       grantAccess();
     } else {
       const data = await res.json();
-      errorEl.textContent = data.error || 'Erro ao salvar PIN.';
+      errorEl.textContent = data.error || 'Erro ao salvar código.';
       errorEl.style.display = 'block';
     }
   } catch (err) {
@@ -138,7 +138,7 @@ document.getElementById('btn-pin-create').addEventListener('click', async () => 
     errorEl.style.display = 'block';
   } finally {
     btn.disabled = false;
-    btn.textContent = 'SALVAR PIN';
+    btn.textContent = 'SALVAR CÓDIGO';
   }
 });
 
@@ -147,7 +147,7 @@ document.getElementById('btn-pin-verify').addEventListener('click', async () => 
   const errorEl = document.getElementById('pin-verify-error');
   
   if (!pin) {
-    errorEl.textContent = 'Digite seu PIN.';
+    errorEl.textContent = 'Digite seu código.';
     errorEl.style.display = 'block';
     return;
   }
@@ -168,11 +168,11 @@ document.getElementById('btn-pin-verify').addEventListener('click', async () => 
       if (data.success) {
         grantAccess();
       } else {
-        errorEl.textContent = 'PIN incorreto.';
+        errorEl.textContent = 'Código incorreto.';
         errorEl.style.display = 'block';
       }
     } else {
-      errorEl.textContent = 'PIN incorreto.';
+      errorEl.textContent = 'Código incorreto.';
       errorEl.style.display = 'block';
     }
   } catch (err) {
