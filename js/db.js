@@ -554,15 +554,15 @@ const dbAPI = {
             }
 
             // Calcular pontos de bonus
-            if (results.bonus_artilheiro && userData.bonus_artilheiro === results.bonus_artilheiro) pts += 5;
-            if (results.bonus_ataque && userData.bonus_ataque === results.bonus_ataque) pts += 5;
-            if (results.bonus_campeao && userData.bonus_campeao === results.bonus_campeao) pts += 5;
-            if (results.bonus_decepcao && userData.bonus_decepcao === results.bonus_decepcao) pts += 5;
-            if (results.bonus_craque && userData.bonus_craque === results.bonus_craque) pts += 5;
-            if (results.bonus_goleiro && userData.bonus_goleiro === results.bonus_goleiro) pts += 5;
-            if (results.bonus_defensor && userData.bonus_defensor === results.bonus_defensor) pts += 5;
-            if (results.bonus_revelacao && userData.bonus_revelacao === results.bonus_revelacao) pts += 5;
-            if (results.bonus_neymar_gol && userData.bonus_neymar_gol === results.bonus_neymar_gol) pts += 5;
+            if (results.bonus_artilheiro && userData.bonus_artilheiro === results.bonus_artilheiro) pts += 2;
+            if (results.bonus_ataque && userData.bonus_ataque === results.bonus_ataque) pts += 2;
+            if (results.bonus_campeao && userData.bonus_campeao === results.bonus_campeao) pts += 2;
+            if (results.bonus_decepcao && userData.bonus_decepcao === results.bonus_decepcao) pts += 2;
+            if (results.bonus_craque && userData.bonus_craque === results.bonus_craque) pts += 2;
+            if (results.bonus_goleiro && userData.bonus_goleiro === results.bonus_goleiro) pts += 2;
+            if (results.bonus_defensor && userData.bonus_defensor === results.bonus_defensor) pts += 2;
+            if (results.bonus_revelacao && userData.bonus_revelacao === results.bonus_revelacao) pts += 2;
+            if (results.bonus_neymar_gol && userData.bonus_neymar_gol === results.bonus_neymar_gol) pts += 2;
             
             if (userData.pontos_ajuste) {
               pts += parseInt(userData.pontos_ajuste);
