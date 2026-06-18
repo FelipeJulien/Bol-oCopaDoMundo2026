@@ -626,6 +626,10 @@ const dbAPI = {
             
             let userScoreBetsCount = {};
             let exactGroups = new Set();
+            let prevUm = null;
+            let hasDupla = false;
+            let userDailyMatchCount = {};
+            let userDailyMissCount = {};
 
             // New Trophy Variables
             let currentWinnerStreak = 0;
@@ -665,6 +669,19 @@ const dbAPI = {
               if (um.exact && um.pick.isCuringa) hasCuringaExato = true;
               if (um.winner) uniqueWinnerHits.add(um.match.id);
               
+              if (prevUm && um.exact && prevUm.exact) {
+                  if (um.pick.home === prevUm.pick.away && um.pick.away === prevUm.pick.home && um.pick.home !== um.pick.away) {
+                      hasDupla = true;
+                  }
+              }
+              prevUm = um;
+
+              const dayStr = um.match.dateStr;
+              userDailyMatchCount[dayStr] = (userDailyMatchCount[dayStr] || 0) + 1;
+              if (!um.winner) {
+                  userDailyMissCount[dayStr] = (userDailyMissCount[dayStr] || 0) + 1;
+              }
+
               const scoreStr = um.pick.home + 'x' + um.pick.away;
               userScoreBetsCount[scoreStr] = (userScoreBetsCount[scoreStr] || 0) + 1;
 
@@ -830,7 +847,10 @@ const dbAPI = {
               'teimoso': { id: 'teimoso', icon: '🔁', title: 'Teimoso (Apostou no mesmo placar 5 vezes e finalmente acertou)' },
               'sangue_frio': { id: 'sangue_frio', icon: '🥶', title: 'Sangue Frio (Acertou o placar exato de uma final ou semifinal)' },
               'explorador': { id: 'explorador', icon: '🌍', title: 'Explorador (Acertou pelo menos um placar exato de cada grupo da fase de grupos)' },
-              'contra_tudo': { id: 'contra_tudo', icon: '🎲', title: 'Contra Tudo e Todos (Acertou o exato apostando diferente de 90%+ dos jogadores)' }
+              'contra_tudo': { id: 'contra_tudo', icon: '🎲', title: 'Contra Tudo e Todos (Acertou o exato apostando diferente de 90%+ dos jogadores)' },
+              'dupla_personalidade': { id: 'dupla_personalidade', icon: '🎭', title: 'Dupla Personalidade (Apostou em placares completamente opostos em dois jogos seguidos e acertou os dois)' },
+              'palhaco': { id: 'palhaco', icon: '🤡', title: 'Palhaço (Errou todos os palpites de uma rodada inteira)' },
+              'lenda': { id: 'lenda', icon: '🌟', title: 'Lenda (Ficou no top 3 do ranking durante todo o torneio sem cair)' }
             };
 
             let userBadgesMap = new Map();
@@ -870,6 +890,25 @@ const dbAPI = {
             if (results.bonus_campeao && userData.bonus_campeao === results.bonus_campeao) {
                hasCampeaoAntecipado = true;
             }
+            
+            let hasPalhaco = false;
+            for (let day in userDailyMatchCount) {
+                if (userDailyMatchCount[day] >= 3 && userDailyMatchCount[day] === userDailyMissCount[day]) {
+                    hasPalhaco = true;
+                }
+            }
+
+            let hasLenda = true;
+            if (daysList.length < 5) {
+                hasLenda = false;
+            } else {
+                for (let day of daysList) {
+                    if (dailyRankings[day] && dailyRankings[day][userDoc.id] > 3) {
+                        hasLenda = false;
+                        break;
+                    }
+                }
+            }
 
             if (hasEmChamas) userBadgesMap.set('em_chamas', ALL_POSSIBLE_BADGES['em_chamas']);
             if (hasFiel) userBadgesMap.set('fiel', ALL_POSSIBLE_BADGES['fiel']);
@@ -891,6 +930,9 @@ const dbAPI = {
             if (hasSangueFrio) userBadgesMap.set('sangue_frio', ALL_POSSIBLE_BADGES['sangue_frio']);
             if (hasExplorador) userBadgesMap.set('explorador', ALL_POSSIBLE_BADGES['explorador']);
             if (hasContraTudo) userBadgesMap.set('contra_tudo', ALL_POSSIBLE_BADGES['contra_tudo']);
+            if (hasDupla) userBadgesMap.set('dupla_personalidade', ALL_POSSIBLE_BADGES['dupla_personalidade']);
+            if (hasPalhaco) userBadgesMap.set('palhaco', ALL_POSSIBLE_BADGES['palhaco']);
+            if (hasLenda) userBadgesMap.set('lenda', ALL_POSSIBLE_BADGES['lenda']);
 
             // Troféus Dinâmicos Automáticos
             let hasLider = manualBadges.includes('lider');
