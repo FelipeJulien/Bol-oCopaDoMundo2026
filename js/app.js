@@ -1566,7 +1566,13 @@ const ALL_POSSIBLE_BADGES = [
   { id: 'telepata', icon: '🧠', title: 'Telepata', desc: 'Teve o mesmo palpite exato que outro jogador 5 vezes' },
   { id: 'campeao_antecipado', icon: '🏆', title: 'Campeão Antecipado', desc: 'Apostou no campeão antes do torneio e acertou' },
   { id: 'azarado', icon: '😤', title: 'Azarado', desc: 'Errou o placar exato por 1 gol 5 vezes' },
-  { id: 'igual_chatgpt', icon: '🤖', title: 'Igual ao ChatGPT', desc: 'Teve o mesmo palpite que os perfis das IA em 3 jogos' }
+  { id: 'igual_chatgpt', icon: '🤖', title: 'Igual ao ChatGPT', desc: 'Teve o mesmo palpite que os perfis das IA em 3 jogos' },
+  { id: 'exorcista', icon: '🧿', title: 'Exorcista', desc: 'Cravou o placar exato no mesmo jogo que o Kick' },
+  { id: 'zebra_noturna', icon: '🌙', title: 'Zebra Noturna', desc: 'Acertou o placar exato de um jogo que começou depois da meia-noite' },
+  { id: 'teimoso', icon: '🔁', title: 'Teimoso', desc: 'Apostou no mesmo placar 5 vezes e finalmente acertou' },
+  { id: 'sangue_frio', icon: '🥶', title: 'Sangue Frio', desc: 'Acertou o placar exato de uma final ou semifinal' },
+  { id: 'explorador', icon: '🌍', title: 'Explorador', desc: 'Acertou pelo menos um placar exato de cada grupo da fase de grupos' },
+  { id: 'contra_tudo', icon: '🎲', title: 'Contra Tudo e Todos', desc: 'Acertou o exato apostando diferente de 90%+ dos jogadores' }
 ];
 
 function renderSalaTrofeus(myData) {
