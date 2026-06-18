@@ -678,19 +678,6 @@ const dbAPI = {
             let telepataMatchCount = {};
 
             userFinishedMatches.forEach(function(um) {
-              if (um.exact) {
-                currentExactStreak++;
-                maxExactStreak = Math.max(maxExactStreak, currentExactStreak);
-              } else {
-                currentExactStreak = 0;
-              }
-              
-              if (um.winner) {
-                currentWinnerStreak++;
-                maxWinnerStreak = Math.max(maxWinnerStreak, currentWinnerStreak);
-              } else {
-                currentWinnerStreak = 0;
-              }
 
               if (um.pts === 0) {
                 currentMissStreak++;
@@ -1019,11 +1006,67 @@ const dbAPI = {
             let hasOrbita = maxOrbitaStreak >= 5;
             let hasMontanhaRussa = subiuMaisDe3 && desceuMaisDe3;
             
+            // Recalculate chronologically ALL finished matches for accurate streak logic
+            let allFinishedChronological = [...finishedMatches].sort((a, b) => a.date - b.date);
+            let chronologicalWinnerStreak = 0;
+            let maxChronologicalWinnerStreak = 0;
+            let chronologicalExactStreak = 0;
+            let maxChronologicalExactStreak = 0;
+
+            allFinishedChronological.forEach(m => {
+                const r = results[m.id];
+                const p = picksData[m.id];
+                let isWinner = false;
+                let isExact = false;
+                
+                if (p && p.home !== undefined) {
+                    if (p.home === r.home && p.away === r.away) {
+                        isExact = true;
+                        isWinner = true;
+                    } else if (
+                      (p.home > p.away && r.home > r.away) ||
+                      (p.home < p.away && r.home < r.away) ||
+                      (p.home === p.away && r.home === r.away)
+                    ) {
+                        isWinner = true;
+                    }
+                }
+                
+                if (isExact) {
+                    chronologicalExactStreak++;
+                    maxChronologicalExactStreak = Math.max(maxChronologicalExactStreak, chronologicalExactStreak);
+                } else {
+                    chronologicalExactStreak = 0;
+                }
+                
+                if (isWinner) {
+                    chronologicalWinnerStreak++;
+                    maxChronologicalWinnerStreak = Math.max(maxChronologicalWinnerStreak, chronologicalWinnerStreak);
+                } else {
+                    chronologicalWinnerStreak = 0;
+                }
+            });
+
+            maxWinnerStreak = maxChronologicalWinnerStreak;
+            maxExactStreak = maxChronologicalExactStreak;
+            
             let hasArqueiro = false;
-            if (userFinishedMatches.length >= 5) {
-                let last5 = userFinishedMatches.slice(-5);
-                let allWinners = last5.every(m => m.winner);
-                let anyExact = last5.some(m => m.exact);
+            if (allFinishedChronological.length >= 5) {
+                let last5 = allFinishedChronological.slice(-5);
+                let allWinners = true;
+                let anyExact = false;
+                last5.forEach(m => {
+                    const r = results[m.id];
+                    const p = picksData[m.id];
+                    if (!p || p.home === undefined) {
+                        allWinners = false;
+                    } else {
+                        let isExact = (p.home === r.home && p.away === r.away);
+                        let isWinner = isExact || (p.home > p.away && r.home > r.away) || (p.home < p.away && r.home < r.away) || (p.home === p.away && r.home === r.away);
+                        if (!isWinner) allWinners = false;
+                        if (isExact) anyExact = true;
+                    }
+                });
                 if (allWinners && anyExact) hasArqueiro = true;
             }
             
