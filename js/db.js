@@ -485,6 +485,22 @@ const dbAPI = {
             usersPicksMap[userDoc.id] = picksData;
           }
 
+          const mostPopularPicks = {};
+          for (let mId in allPicksByMatch) {
+              const scores = allPicksByMatch[mId].scores;
+              let max = 0;
+              let popularScores = [];
+              for (let s in scores) {
+                  if (scores[s] > max) {
+                      max = scores[s];
+                      popularScores = [s];
+                  } else if (scores[s] === max) {
+                      popularScores.push(s);
+                  }
+              }
+              mostPopularPicks[mId] = popularScores;
+          }
+
           // Fase 1: Histórico Diário de Pontos e Rankings
           const agora = new Date();
           function isMatchFinished(m, resObj) {
@@ -632,6 +648,15 @@ const dbAPI = {
             let userDailyMissCount = {};
 
             // New Trophy Variables
+            let muralhaCount = 0;
+            let popularidadeCount = 0;
+            let hasKamikaze = false;
+            let reiDaSelvaCount = 0;
+            daysList.forEach(day => {
+                if (dailyRankings[day] && dailyRankings[day][userDoc.id] === 1) reiDaSelvaCount++;
+            });
+            let hasReiDaSelva = reiDaSelvaCount > 10;
+            
             let currentWinnerStreak = 0;
             let maxWinnerStreak = 0;
             let betOnBrazilAndWonAll = true;
@@ -665,8 +690,21 @@ const dbAPI = {
               
               if (um.exact && um.isTie) exactTies++;
               if (um.exact && um.pick.home === 0 && um.pick.away === 0) has0x0 = true;
+              if (um.exact && um.pick.home !== um.pick.away && (um.pick.home === 0 || um.pick.away === 0)) {
+                  muralhaCount++;
+              }
               if (um.exact && um.totalGoals >= 4) hasGoleada = true;
-              if (um.exact && um.pick.isCuringa) hasCuringaExato = true;
+              if (um.exact && um.pick.isCuringa) {
+                  hasCuringaExato = true;
+                  const cStats = allPicksByMatch[um.match.id];
+                  if (cStats && cStats.total >= 3) {
+                      const scoreStrC = um.pick.home + 'x' + um.pick.away;
+                      const betPct = (cStats.scores[scoreStrC] || 0) / cStats.total;
+                      if (betPct < 0.20) {
+                          hasKamikaze = true;
+                      }
+                  }
+              }
               if (um.winner) uniqueWinnerHits.add(um.match.id);
               
               if (prevUm && um.exact && prevUm.exact) {
@@ -684,6 +722,10 @@ const dbAPI = {
 
               const scoreStr = um.pick.home + 'x' + um.pick.away;
               userScoreBetsCount[scoreStr] = (userScoreBetsCount[scoreStr] || 0) + 1;
+              
+              if (mostPopularPicks[um.match.id] && mostPopularPicks[um.match.id].includes(scoreStr)) {
+                  popularidadeCount++;
+              }
 
               if (um.exact) {
                  alienigenaCount++;
@@ -850,7 +892,11 @@ const dbAPI = {
               'contra_tudo': { id: 'contra_tudo', icon: '🎲', title: 'Contra Tudo e Todos (Acertou o exato apostando diferente de 90%+ dos jogadores)' },
               'dupla_personalidade': { id: 'dupla_personalidade', icon: '🎭', title: 'Dupla Personalidade (Apostou em placares completamente opostos em dois jogos seguidos e acertou os dois)' },
               'palhaco': { id: 'palhaco', icon: '🤡', title: 'Palhaço (Errou todos os palpites de uma rodada inteira)' },
-              'lenda': { id: 'lenda', icon: '🌟', title: 'Lenda (Nunca saiu do Top 3 desde o início do torneio - mín. 5 dias)' }
+              'lenda': { id: 'lenda', icon: '🌟', title: 'Lenda (Nunca saiu do Top 3 desde o início do torneio - mín. 5 dias)' },
+              'muralha': { id: 'muralha', icon: '🧱', title: 'Muralha (Acertou 5 placares com 0 gols do time perdedor)' },
+              'rei_da_selva': { id: 'rei_da_selva', icon: '🦁', title: 'Rei da Selva (Ficou em 1º por mais de 10 rodadas acumuladas no torneio)' },
+              'popularidade': { id: 'popularidade', icon: '🫂', title: 'Popularidade (Teve o palpite mais escolhido pelo bolão em 5 jogos diferentes)' },
+              'kamikaze': { id: 'kamikaze', icon: '💣', title: 'Kamikaze (Usou o multiplicador num jogo de zebra e acertou o placar exato)' }
             };
 
             let userBadgesMap = new Map();
@@ -933,6 +979,10 @@ const dbAPI = {
             if (hasDupla) userBadgesMap.set('dupla_personalidade', ALL_POSSIBLE_BADGES['dupla_personalidade']);
             if (hasPalhaco) userBadgesMap.set('palhaco', ALL_POSSIBLE_BADGES['palhaco']);
             if (hasLenda) userBadgesMap.set('lenda', ALL_POSSIBLE_BADGES['lenda']);
+            if (muralhaCount >= 5) userBadgesMap.set('muralha', ALL_POSSIBLE_BADGES['muralha']);
+            if (hasReiDaSelva) userBadgesMap.set('rei_da_selva', ALL_POSSIBLE_BADGES['rei_da_selva']);
+            if (popularidadeCount >= 5) userBadgesMap.set('popularidade', ALL_POSSIBLE_BADGES['popularidade']);
+            if (hasKamikaze) userBadgesMap.set('kamikaze', ALL_POSSIBLE_BADGES['kamikaze']);
 
             // Troféus Dinâmicos Automáticos
             let hasLider = manualBadges.includes('lider');

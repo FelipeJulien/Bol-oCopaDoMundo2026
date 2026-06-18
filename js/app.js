@@ -1575,7 +1575,11 @@ const ALL_POSSIBLE_BADGES = [
   { id: 'contra_tudo', icon: '🎲', title: 'Contra Tudo e Todos', desc: 'Acertou o exato apostando diferente de 90%+ dos jogadores' },
   { id: 'dupla_personalidade', icon: '🎭', title: 'Dupla Personalidade', desc: 'Apostou em placares completamente opostos em dois jogos seguidos e acertou os dois' },
   { id: 'palhaco', icon: '🤡', title: 'Palhaço', desc: 'Errou todos os palpites de uma rodada inteira' },
-  { id: 'lenda', icon: '🌟', title: 'Lenda', desc: 'Nunca saiu do Top 3 desde o início do torneio (mín. 5 dias)' }
+  { id: 'lenda', icon: '🌟', title: 'Lenda', desc: 'Nunca saiu do Top 3 desde o início do torneio (mín. 5 dias)' },
+  { id: 'muralha', icon: '🧱', title: 'Muralha', desc: 'Acertou 5 placares com 0 gols do time perdedor' },
+  { id: 'rei_da_selva', icon: '🦁', title: 'Rei da Selva', desc: 'Ficou em 1º por mais de 10 rodadas acumuladas no torneio' },
+  { id: 'popularidade', icon: '🫂', title: 'Popularidade', desc: 'Teve o palpite mais escolhido pelo bolão em 5 jogos diferentes' },
+  { id: 'kamikaze', icon: '💣', title: 'Kamikaze', desc: 'Usou o multiplicador num jogo de zebra e acertou o placar exato' }
 ];
 
 function renderSalaTrofeus(myData) {

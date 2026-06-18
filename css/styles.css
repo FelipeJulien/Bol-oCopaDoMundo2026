@@ -2405,6 +2405,24 @@ h1, h2, h3, h4, .condensed {
   background: linear-gradient(180deg, #1a1a2e 0%, rgba(255, 215, 0, 0.15) 100%);
 }
 
+
+.trophy-unlocked[data-id='muralha'] {
+  border-color: #b22222;
+  box-shadow: 0 0 20px rgba(178, 34, 34, 0.7);
+}
+.trophy-unlocked[data-id='rei_da_selva'] {
+  border-color: #ff8c00;
+  box-shadow: 0 0 20px rgba(255, 140, 0, 0.7);
+}
+.trophy-unlocked[data-id='popularidade'] {
+  border-color: #ff1493;
+  box-shadow: 0 0 20px rgba(255, 20, 147, 0.7);
+}
+.trophy-unlocked[data-id='kamikaze'] {
+  border-color: #8b0000;
+  box-shadow: 0 0 20px rgba(139, 0, 0, 0.7);
+}
+
 /* GOAL NOTIFICATION */
 .goal-notification {
   position: fixed;
