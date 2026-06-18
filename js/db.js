@@ -618,6 +618,14 @@ const dbAPI = {
             let hasPatriota = false;
             let hasSpecialOne = false;
             let hasExorcista = false;
+            let hasZebraNoturna = false;
+            let hasTeimoso = false;
+            let hasSangueFrio = false;
+            let hasExplorador = false;
+            let hasContraTudo = false;
+            
+            let userScoreBetsCount = {};
+            let exactGroups = new Set();
 
             // New Trophy Variables
             let currentWinnerStreak = 0;
@@ -657,9 +665,11 @@ const dbAPI = {
               if (um.exact && um.pick.isCuringa) hasCuringaExato = true;
               if (um.winner) uniqueWinnerHits.add(um.match.id);
               
+              const scoreStr = um.pick.home + 'x' + um.pick.away;
+              userScoreBetsCount[scoreStr] = (userScoreBetsCount[scoreStr] || 0) + 1;
+
               if (um.exact) {
                  alienigenaCount++;
-                 const scoreStr = um.pick.home + 'x' + um.pick.away;
                  if (allPicksByMatch[um.match.id] && allPicksByMatch[um.match.id].scores[scoreStr] === 1) {
                    hasSpecialOne = true;
                  }
@@ -674,6 +684,28 @@ const dbAPI = {
                  });
                  if (kickAlsoExact) {
                      hasExorcista = true;
+                 }
+                 
+                 const brHour = (um.match.date.getUTCHours() - 3 + 24) % 24;
+                 if (brHour >= 0 && brHour < 6) {
+                     hasZebraNoturna = true;
+                 }
+                 if (userScoreBetsCount[scoreStr] >= 5) {
+                     hasTeimoso = true;
+                 }
+                 if (um.match.group.toLowerCase().includes('final') || um.match.group === 'SF' || um.match.group === 'F') {
+                     hasSangueFrio = true;
+                 }
+                 if (um.match.group.length === 1) {
+                     exactGroups.add(um.match.group);
+                 }
+                 
+                 const cStats = allPicksByMatch[um.match.id];
+                 if (cStats && cStats.total >= 5) {
+                     const betPct = (cStats.scores[scoreStr] || 0) / cStats.total;
+                     if (betPct <= 0.10) {
+                         hasContraTudo = true;
+                     }
                  }
               }
               
@@ -793,7 +825,12 @@ const dbAPI = {
               'campeao_antecipado': { id: 'campeao_antecipado', icon: '🏆', title: 'Campeão Antecipado (Apostou no campeão antes do torneio e acertou)' },
               'azarado': { id: 'azarado', icon: '😤', title: 'Azarado (Errou o placar exato por 1 gol 5 vezes)' },
               'igual_chatgpt': { id: 'igual_chatgpt', icon: '🤖', title: 'Igual ao ChatGPT (Teve o mesmo palpite que os perfis das IA em 3 jogos)' },
-              'exorcista': { id: 'exorcista', icon: '🧿', title: 'Exorcista (Cravou o placar exato no mesmo jogo que o Kick)' }
+              'exorcista': { id: 'exorcista', icon: '🧿', title: 'Exorcista (Cravou o placar exato no mesmo jogo que o Kick)' },
+              'zebra_noturna': { id: 'zebra_noturna', icon: '🌙', title: 'Zebra Noturna (Acertou o placar exato de um jogo que começou depois da meia-noite)' },
+              'teimoso': { id: 'teimoso', icon: '🔁', title: 'Teimoso (Apostou no mesmo placar 5 vezes e finalmente acertou)' },
+              'sangue_frio': { id: 'sangue_frio', icon: '🥶', title: 'Sangue Frio (Acertou o placar exato de uma final ou semifinal)' },
+              'explorador': { id: 'explorador', icon: '🌍', title: 'Explorador (Acertou pelo menos um placar exato de cada grupo da fase de grupos)' },
+              'contra_tudo': { id: 'contra_tudo', icon: '🎲', title: 'Contra Tudo e Todos (Acertou o exato apostando diferente de 90%+ dos jogadores)' }
             };
 
             let userBadgesMap = new Map();
@@ -847,6 +884,13 @@ const dbAPI = {
             if (hasTelepata) userBadgesMap.set('telepata', ALL_POSSIBLE_BADGES['telepata']);
             if (hasCampeaoAntecipado) userBadgesMap.set('campeao_antecipado', ALL_POSSIBLE_BADGES['campeao_antecipado']);
             if (hasExorcista) userBadgesMap.set('exorcista', ALL_POSSIBLE_BADGES['exorcista']);
+            
+            if (exactGroups.size >= 12) hasExplorador = true;
+            if (hasZebraNoturna) userBadgesMap.set('zebra_noturna', ALL_POSSIBLE_BADGES['zebra_noturna']);
+            if (hasTeimoso) userBadgesMap.set('teimoso', ALL_POSSIBLE_BADGES['teimoso']);
+            if (hasSangueFrio) userBadgesMap.set('sangue_frio', ALL_POSSIBLE_BADGES['sangue_frio']);
+            if (hasExplorador) userBadgesMap.set('explorador', ALL_POSSIBLE_BADGES['explorador']);
+            if (hasContraTudo) userBadgesMap.set('contra_tudo', ALL_POSSIBLE_BADGES['contra_tudo']);
 
             // Troféus Dinâmicos Automáticos
             let hasLider = manualBadges.includes('lider');
