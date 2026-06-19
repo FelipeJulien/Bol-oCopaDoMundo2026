@@ -1191,7 +1191,7 @@ const dbAPI = {
               });
             // }
           }
-          ranking.sort(function(a, b) { return b.pts - a.pts || b.exato - a.exato; });
+          ranking.sort(function(a, b) { return b.pts - a.pts || (b.badges ? b.badges.length : 0) - (a.badges ? a.badges.length : 0) || b.exato - a.exato; });
           await window.supabaseClient.from('meta').upsert({ id: 'ranking_cache', data: { ranking: ranking, allPicksByMatch: allPicksByMatch, updatedAt: new Date().toISOString() } });
           console.log('Global Ranking updated successfully!');
         
