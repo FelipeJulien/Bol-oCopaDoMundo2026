@@ -2079,8 +2079,6 @@ function drawBracketLines() {
     svg.style.position = 'absolute';
     svg.style.top = '0';
     svg.style.left = '0';
-    svg.style.width = '100%';
-    svg.style.height = '100%';
     svg.style.pointerEvents = 'none';
     svg.style.zIndex = '1';
     container.style.position = 'relative';
@@ -2088,6 +2086,10 @@ function drawBracketLines() {
   } else {
     svg.innerHTML = '';
   }
+  
+  // Set explicit dimensions to prevent collapsing in flex containers
+  svg.style.width = container.scrollWidth + 'px';
+  svg.style.height = container.scrollHeight + 'px';
 
   // Define as conexões
   const connections = [
@@ -2130,7 +2132,7 @@ function drawBracketLines() {
       
       const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
       path.setAttribute('d', 'M ' + fromX + ' ' + fromY + ' L ' + midX + ' ' + fromY + ' L ' + midX + ' ' + toY + ' L ' + toX + ' ' + toY);
-      path.setAttribute('stroke', '#444');
+      path.setAttribute('stroke', '#666');
       path.setAttribute('stroke-width', '2');
       path.setAttribute('fill', 'none');
       
