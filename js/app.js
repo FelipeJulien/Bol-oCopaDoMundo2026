@@ -2065,7 +2065,8 @@ function renderBracket() {
 
   container.innerHTML = html;
   
-  setTimeout(drawBracketLines, 100);
+  // Aumentar o timeout para garantir que o layout Flexbox tenha terminado
+  setTimeout(drawBracketLines, 300);
 }
 
 function drawBracketLines() {
@@ -2082,9 +2083,12 @@ function drawBracketLines() {
     svg.style.pointerEvents = 'none';
     svg.style.zIndex = '1';
     container.style.position = 'relative';
+    svg.style.overflow = 'visible';
     container.insertBefore(svg, container.firstChild);
   } else {
-    svg.innerHTML = '';
+    while (svg.firstChild) {
+      svg.removeChild(svg.firstChild);
+    }
   }
   
   // Set explicit dimensions to prevent collapsing in flex containers
@@ -2132,8 +2136,8 @@ function drawBracketLines() {
       
       const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
       path.setAttribute('d', 'M ' + fromX + ' ' + fromY + ' L ' + midX + ' ' + fromY + ' L ' + midX + ' ' + toY + ' L ' + toX + ' ' + toY);
-      path.setAttribute('stroke', '#666');
-      path.setAttribute('stroke-width', '2');
+      path.setAttribute('stroke', 'var(--accent-gold, #f1c40f)');
+      path.setAttribute('stroke-width', '3');
       path.setAttribute('fill', 'none');
       
       svg.appendChild(path);
