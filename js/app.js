@@ -107,10 +107,12 @@ function buildMatchCardHTML(match) {
   var dayOfMonth = match.date.getDate();
   var weekdayDisplay = dayOfWeek + ' ' + dayOfMonth;
   
+  var groupLabel = match.group === 'Mata-Mata' ? match.round.toUpperCase() : 'GRUPO ' + match.group;
+  
   return '<div class="' + cardClasses + '" data-group="' + match.group + '" data-match-id="' + match.id + '">' +
     '<div class="bet-result-badge" id="badge-' + match.id + '" style="display: none;"></div>' +
     '<div class="match-meta">' +
-      '<span class="match-group-badge">GRUPO ' + match.group + '</span>' +
+      '<span class="match-group-badge">' + groupLabel + '</span>' +
       '<span class="match-weekday">' + weekdayDisplay + '</span>' +
       '<span class="match-time">' + dateDisplay + '</span>' +
       liveHTML +
@@ -119,7 +121,7 @@ function buildMatchCardHTML(match) {
     '</div>' +
     '<div class="match-teams">' +
       '<div class="team home">' +
-        '<img src="https://flagcdn.com/h80/' + match.home.code + '.png" class="flag-img" alt="' + match.home.name + '">' +
+        '<img src="https://flagcdn.com/h80/' + match.home.code + '.png" class="flag-img' + (match.home.isPlaceholder ? ' flag-placeholder' : '') + '" alt="' + match.home.name + '"' + (match.home.isPlaceholder ? ' style="opacity: 0.3;"' : '') + '>' +
         '<span class="team-name">' + match.home.name + '</span>' +
       '</div>' +
       '<div style="display:flex; flex-direction:column; align-items:center; width:100%;">' +
@@ -144,7 +146,7 @@ function buildMatchCardHTML(match) {
         '</div>' +
       '</div>' +
       '<div class="team away">' +
-        '<img src="https://flagcdn.com/h80/' + match.away.code + '.png" class="flag-img" alt="' + match.away.name + '">' +
+        '<img src="https://flagcdn.com/h80/' + match.away.code + '.png" class="flag-img' + (match.away.isPlaceholder ? ' flag-placeholder' : '') + '" alt="' + match.away.name + '"' + (match.away.isPlaceholder ? ' style="opacity: 0.3;"' : '') + '>' +
         '<span class="team-name">' + match.away.name + '</span>' +
       '</div>' +
     '</div>' +
@@ -161,15 +163,11 @@ function renderMatches() {
   var curDay = '';
   var curDayProx = '';
 
+  var htmlMataMata = '';
+  var curMataMataRound = '';
+
   ALL_MATCHES.forEach(function(match) {
     var dayKey = getDateKey(match.date);
-
-    // Header do dia para a aba Todos os Jogos
-    if (dayKey !== curDay) {
-      curDay = dayKey;
-      htmlJogos += '<h3 class="day-header">' + formatDayHeader(match.date) + '</h3>';
-    }
-    htmlJogos += buildMatchCardHTML(match);
 
     // Próximos Jogos (próximos 3 dias)
     if (match.date >= agora && match.date <= tresDias) {
@@ -179,6 +177,21 @@ function renderMatches() {
       }
       htmlProximos += buildMatchCardHTML(match);
     }
+
+    if (match.group === 'Mata-Mata') {
+      if (match.round !== curMataMataRound) {
+        curMataMataRound = match.round;
+        htmlMataMata += '<h3 class="day-header" style="color: var(--accent-gold);">' + curMataMataRound + '</h3>';
+      }
+      htmlMataMata += buildMatchCardHTML(match);
+    } else {
+      // Header do dia para a aba Todos os Jogos
+      if (dayKey !== curDay) {
+        curDay = dayKey;
+        htmlJogos += '<h3 class="day-header">' + formatDayHeader(match.date) + '</h3>';
+      }
+      htmlJogos += buildMatchCardHTML(match);
+    }
   });
 
   if (!htmlProximos) {
@@ -187,6 +200,11 @@ function renderMatches() {
 
   els.jogosContainer.innerHTML = htmlJogos;
   els.proximosContainer.innerHTML = htmlProximos;
+  
+  var mmContainer = document.getElementById('matamata-list-container');
+  if (!mmContainer) {
+    els.jogosContainer.parentElement.insertAdjacentHTML('beforeend', '<div id="matamata-list-container"></div>');
+  }
   
   if (window.cachedUserData) {
     applyUserDataToDOM(window.cachedUserData);
@@ -1991,141 +2009,58 @@ function renderBracket() {
   var results = globalOfficialResults || {};
   var userPicks = globalPicks || {};
 
-  var advancingTeams = [];
-  var thirdPlaces = [];
-
-  GROUPS.forEach(function(group) {
-    var standings = {};
-    group.teams.forEach(function(tKey) {
-      standings[tKey] = { key: tKey, team: TEAM_MAP[tKey], p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 };
-    });
-
-    var groupMatches = ALL_MATCHES.filter(function(m) { return m.group === group.letter; });
-    groupMatches.forEach(function(m) {
-      var r = results[m.id];
-      if (!r || r.home === undefined) {
-         if (userPicks[m.id] && userPicks[m.id].home !== undefined) r = userPicks[m.id];
-      }
-      if (r && r.home !== undefined && r.away !== undefined) {
-        var homeKey = Object.keys(TEAM_MAP).find(k => TEAM_MAP[k].code === m.home.code);
-        var awayKey = Object.keys(TEAM_MAP).find(k => TEAM_MAP[k].code === m.away.code);
-        if (standings[homeKey] && standings[awayKey]) {
-          standings[homeKey].p++;
-          standings[awayKey].p++;
-          standings[homeKey].gf += r.home;
-          standings[homeKey].ga += r.away;
-          standings[awayKey].gf += r.away;
-          standings[awayKey].ga += r.home;
-          if (r.home > r.away) {
-            standings[homeKey].pts += 3;
-          } else if (r.home < r.away) {
-            standings[awayKey].pts += 3;
-          } else {
-            standings[homeKey].pts += 1;
-            standings[awayKey].pts += 1;
-          }
-        }
-      }
-    });
-
-    var sorted = Object.values(standings).sort(function(a, b) {
-      if (b.pts !== a.pts) return b.pts - a.pts;
-      var gdB = b.gf - b.ga;
-      var gdA = a.gf - a.ga;
-      if (gdB !== gdA) return gdB - gdA;
-      return b.gf - a.gf;
-    });
-
-    advancingTeams.push(sorted[0]);
-    advancingTeams.push(sorted[1]);
-    thirdPlaces.push(sorted[2]);
-  });
-
-  thirdPlaces.sort(function(a, b) {
-    if (b.pts !== a.pts) return b.pts - a.pts;
-    var gdB = b.gf - b.ga;
-    var gdA = a.gf - a.ga;
-    if (gdB !== gdA) return gdB - gdA;
-    return b.gf - a.gf;
-  });
-
-  for (var i = 0; i < 8; i++) {
-    advancingTeams.push(thirdPlaces[i]);
-  }
-
-  // Sort the 32 teams globally for bracket seeding
-  advancingTeams.sort(function(a, b) {
-    if (b.pts !== a.pts) return b.pts - a.pts;
-    var gdB = b.gf - b.ga;
-    var gdA = a.gf - a.ga;
-    if (gdB !== gdA) return gdB - gdA;
-    return b.gf - a.gf;
-  });
-
-  var seeds = [
-    [1, 32], [16, 17], [9, 24], [8, 25],
-    [4, 29], [13, 20], [12, 21], [5, 28],
-    [2, 31], [15, 18], [10, 23], [7, 26],
-    [3, 30], [14, 19], [11, 22], [6, 27]
-  ];
-
   var html = '';
+  
+  // Definição das colunas com base nos nums oficiais
   var rounds = [
-    { name: '16-Avos', matches: 16 },
-    { name: 'Oitavas', matches: 8 },
-    { name: 'Quartas', matches: 4 },
-    { name: 'Semis', matches: 2 },
-    { name: 'Final', matches: 1 }
+    { name: '32-Avos', matches: Array.from({length: 16}, (_, i) => i + 73) },
+    { name: 'Oitavas', matches: Array.from({length: 8}, (_, i) => i + 89) },
+    { name: 'Quartas', matches: Array.from({length: 4}, (_, i) => i + 97) },
+    { name: 'Semis', matches: [101, 102] },
+    { name: 'Finais', matches: [104, 103], labels: ['FINAL', '3º LUGAR'] }
   ];
-
-  let currentRoundTeams = [];
-  seeds.forEach(s => {
-    currentRoundTeams.push(advancingTeams[s[0]-1] || null);
-    currentRoundTeams.push(advancingTeams[s[1]-1] || null);
-  });
 
   rounds.forEach(function(r) {
     html += '<div class="bracket-column">';
     html += '<h3 style="text-align:center; color: var(--accent-gold); margin-bottom: 20px;">' + r.name + '</h3>';
     
-    let nextRoundTeams = [];
-    
-    for (var i = 0; i < r.matches; i++) {
-      var t1 = currentRoundTeams[i*2];
-      var t2 = currentRoundTeams[i*2 + 1];
+    r.matches.forEach(function(num, idx) {
+      var matchId = 'm_' + (num - 1);
+      var m = ALL_MATCHES.find(x => x.id === matchId);
       
       html += '<div class="bracket-match" style="background:var(--bg-panel); border:1px solid var(--border-subtle); padding:10px; border-radius:8px; margin-bottom:16px;">';
       
-      if (t1) {
-        html += '<div style="display:flex; justify-content:space-between; margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid #333;">';
-        html += '<div style="display:flex; align-items:center; gap:8px;"><img src="https://flagcdn.com/w20/' + t1.team.code + '.png" style="border-radius:2px;"> <span style="font-weight:bold;">' + t1.team.name + '</span></div>';
+      if (r.labels && r.labels[idx]) {
+        html += '<div style="text-align:center; font-size:10px; color:var(--text-muted); margin-bottom: 4px; font-weight: bold;">' + r.labels[idx] + '</div>';
+      } else {
+        html += '<div style="text-align:center; font-size:10px; color:var(--text-muted); margin-bottom: 4px;">J' + num + '</div>';
+      }
+      
+      if (m) {
+        var res = results[m.id];
+        var sHome = res && res.home !== undefined ? res.home : '-';
+        var sAway = res && res.away !== undefined ? res.away : '-';
+        
+        var homeOpacity = m.home.isPlaceholder ? '0.5' : '1';
+        html += '<div style="display:flex; justify-content:space-between; margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid #333; opacity:' + homeOpacity + '">';
+        html += '<div style="display:flex; align-items:center; gap:8px;"><img src="https://flagcdn.com/w20/' + m.home.code + '.png" style="border-radius:2px;" onerror="this.src=\'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=\';this.style.width=\'20px\';this.style.height=\'15px\';this.style.background=\'#333\';"> <span style="font-weight:bold; font-size:12px;">' + m.home.name + '</span></div>';
+        html += '<div style="font-weight:bold; color:var(--text-primary);">' + sHome + '</div>';
+        html += '</div>';
+
+        var awayOpacity = m.away.isPlaceholder ? '0.5' : '1';
+        html += '<div style="display:flex; justify-content:space-between; opacity:' + awayOpacity + '">';
+        html += '<div style="display:flex; align-items:center; gap:8px;"><img src="https://flagcdn.com/w20/' + m.away.code + '.png" style="border-radius:2px;" onerror="this.src=\'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=\';this.style.width=\'20px\';this.style.height=\'15px\';this.style.background=\'#333\';"> <span style="font-weight:bold; font-size:12px;">' + m.away.name + '</span></div>';
+        html += '<div style="font-weight:bold; color:var(--text-primary);">' + sAway + '</div>';
         html += '</div>';
       } else {
         html += '<div style="display:flex; justify-content:space-between; margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid #333;"><span style="color:#aaa;">TBD</span></div>';
-      }
-
-      if (t2) {
-        html += '<div style="display:flex; justify-content:space-between;">';
-        html += '<div style="display:flex; align-items:center; gap:8px;"><img src="https://flagcdn.com/w20/' + t2.team.code + '.png" style="border-radius:2px;"> <span style="font-weight:bold;">' + t2.team.name + '</span></div>';
-        html += '</div>';
-      } else {
-         html += '<div style="display:flex; justify-content:space-between;"><span style="color:#aaa;">TBD</span></div>';
+        html += '<div style="display:flex; justify-content:space-between;"><span style="color:#aaa;">TBD</span></div>';
       }
       
       html += '</div>';
-      
-      // We don't know who advances yet, so next round gets TBD
-      nextRoundTeams.push(null);
-    }
-    html += '</div>';
-    
-    // Preparation for next iteration
-    // The next round needs double the nulls so we can pull two teams per match
-    currentRoundTeams = [];
-    nextRoundTeams.forEach(() => {
-       currentRoundTeams.push(null);
-       currentRoundTeams.push(null);
     });
+    
+    html += '</div>';
   });
 
   container.innerHTML = html;
@@ -2133,6 +2068,9 @@ function renderBracket() {
 
 // PONTO DE ENTRADA
 function initApp() {
+  if (typeof resolveKnockoutTeams === 'function') {
+    resolveKnockoutTeams(globalOfficialResults || {});
+  }
   populateBonusSelects();
   renderMatches();
   renderGroups();
@@ -2198,6 +2136,13 @@ function initApp() {
     globalAllPicksByMatch = allPicksByMatch || {};
     // Sync official results to localStorage for other reads
     localStorage.setItem('official_results', JSON.stringify(officialResults));
+    
+    if (typeof resolveKnockoutTeams === 'function') {
+      resolveKnockoutTeams(globalOfficialResults);
+      renderMatches(); // Re-render matches to show resolved teams
+      renderBracket(); // Re-render bracket
+    }
+    
     renderSidebarRanking(ranking);
     renderFullRanking();
     if (typeof renderDuelo === 'function') renderDuelo();

@@ -179,10 +179,80 @@ const _RAW = [
   ['2026-06-27','21:00 UTC-5','Jordan','Argentina','J','Dallas (Arlington)']
 ];
 
-// 6. CONSTRUIR ARRAYS FINAIS
+// 6. JOGOS DO MATA-MATA (Baseado no chaveamento oficial da imagem fornecida)
+const _RAW_KNOCKOUT = [
+  // 32-AVOS
+  { num: 73, date: '2026-06-28', time: '16:00 UTC-7', homeRef: '2A', awayRef: '2B', ground: 'Los Angeles (Inglewood)', round: '32-AVOS' },
+  { num: 74, date: '2026-06-29', time: '17:30 UTC-4', homeRef: '1E', awayRef: '3A/B/C/D/F', ground: 'Boston (Foxborough)', round: '32-AVOS' },
+  { num: 75, date: '2026-06-29', time: '22:00 UTC-6', homeRef: '1F', awayRef: '2C', ground: 'Monterrey (Guadalupe)', round: '32-AVOS' },
+  { num: 76, date: '2026-06-29', time: '17:00 UTC-5', homeRef: '1C', awayRef: '2F', ground: 'Houston', round: '32-AVOS' },
+  { num: 77, date: '2026-06-30', time: '18:00 UTC-4', homeRef: '1I', awayRef: '3C/D/F/G/H', ground: 'New York/New Jersey (East Rutherford)', round: '32-AVOS' },
+  { num: 78, date: '2026-06-30', time: '14:00 UTC-5', homeRef: '2E', awayRef: '2I', ground: 'Dallas (Arlington)', round: '32-AVOS' },
+  { num: 79, date: '2026-06-30', time: '22:00 UTC-6', homeRef: '1A', awayRef: '3C/E/F/H/I', ground: 'Mexico City', round: '32-AVOS' },
+  { num: 80, date: '2026-07-01', time: '12:00 UTC-4', homeRef: '1L', awayRef: '3E/H/I/J/K', ground: 'Atlanta', round: '32-AVOS' },
+  { num: 81, date: '2026-07-01', time: '21:00 UTC-7', homeRef: '1D', awayRef: '3B/E/F/I/J', ground: 'San Francisco Bay Area (Santa Clara)', round: '32-AVOS' },
+  { num: 82, date: '2026-07-01', time: '17:00 UTC-7', homeRef: '1G', awayRef: '3A/E/H/I/J', ground: 'Seattle', round: '32-AVOS' },
+  { num: 83, date: '2026-07-02', time: '20:00 UTC-4', homeRef: '2K', awayRef: '2L', ground: 'Toronto', round: '32-AVOS' },
+  { num: 84, date: '2026-07-02', time: '16:00 UTC-7', homeRef: '1H', awayRef: '2J', ground: 'Los Angeles (Inglewood)', round: '32-AVOS' },
+  { num: 85, date: '2026-07-02', time: '00:00 UTC-7', homeRef: '1B', awayRef: '3E/F/G/I/J', ground: 'Vancouver', round: '32-AVOS' }, // O horário na imagem diz 00:00, ajustaremos se necessário, mas vou manter. O dia é 03/07 no UTC, mantendo a data original. Note: A imagem mostra J85 as 00:00 no dia 03/07. Vou colocar 2026-07-03 e 00:00. 
+  { num: 86, date: '2026-07-03', time: '13:00 UTC-4', homeRef: '1J', awayRef: '2H', ground: 'Miami (Miami Gardens)', round: '32-AVOS' },
+  { num: 87, date: '2026-07-03', time: '22:30 UTC-5', homeRef: '1K', awayRef: '3D/E/I/J/L', ground: 'Kansas City', round: '32-AVOS' },
+  { num: 88, date: '2026-07-03', time: '15:00 UTC-5', homeRef: '2D', awayRef: '2G', ground: 'Dallas (Arlington)', round: '32-AVOS' },
+  
+  // OITAVAS
+  { num: 89, date: '2026-07-04', time: '18:00 UTC-4', homeRef: 'W74', awayRef: 'W77', ground: 'Philadelphia', round: 'OITAVAS' },
+  { num: 90, date: '2026-07-04', time: '14:00 UTC-5', homeRef: 'W73', awayRef: 'W75', ground: 'Houston', round: 'OITAVAS' },
+  { num: 91, date: '2026-07-05', time: '17:00 UTC-4', homeRef: 'W76', awayRef: 'W78', ground: 'New York/New Jersey (East Rutherford)', round: 'OITAVAS' },
+  { num: 92, date: '2026-07-05', time: '21:00 UTC-6', homeRef: 'W79', awayRef: 'W80', ground: 'Mexico City', round: 'OITAVAS' },
+  { num: 93, date: '2026-07-06', time: '16:00 UTC-5', homeRef: 'W83', awayRef: 'W84', ground: 'Dallas (Arlington)', round: 'OITAVAS' },
+  { num: 94, date: '2026-07-06', time: '21:00 UTC-7', homeRef: 'W81', awayRef: 'W82', ground: 'Seattle', round: 'OITAVAS' },
+  { num: 95, date: '2026-07-07', time: '13:00 UTC-4', homeRef: 'W86', awayRef: 'W88', ground: 'Atlanta', round: 'OITAVAS' },
+  { num: 96, date: '2026-07-07', time: '17:00 UTC-7', homeRef: 'W85', awayRef: 'W87', ground: 'Vancouver', round: 'OITAVAS' },
+  
+  // QUARTAS
+  { num: 97, date: '2026-07-09', time: '17:00 UTC-4', homeRef: 'W89', awayRef: 'W90', ground: 'Boston (Foxborough)', round: 'QUARTAS' },
+  { num: 98, date: '2026-07-10', time: '16:00 UTC-7', homeRef: 'W93', awayRef: 'W94', ground: 'Los Angeles (Inglewood)', round: 'QUARTAS' },
+  { num: 99, date: '2026-07-11', time: '18:00 UTC-4', homeRef: 'W91', awayRef: 'W92', ground: 'Miami (Miami Gardens)', round: 'QUARTAS' },
+  { num: 100, date: '2026-07-11', time: '22:00 UTC-5', homeRef: 'W95', awayRef: 'W96', ground: 'Kansas City', round: 'QUARTAS' },
+  
+  // SEMIS
+  { num: 101, date: '2026-07-14', time: '16:00 UTC-5', homeRef: 'W97', awayRef: 'W98', ground: 'Dallas (Arlington)', round: 'SEMIFINAL' },
+  { num: 102, date: '2026-07-15', time: '16:00 UTC-4', homeRef: 'W99', awayRef: 'W100', ground: 'Atlanta', round: 'SEMIFINAL' },
+  
+  // 3º LUGAR
+  { num: 103, date: '2026-07-18', time: '18:00 UTC-4', homeRef: 'RU101', awayRef: 'RU102', ground: 'Miami (Miami Gardens)', round: '3º LUGAR' },
+  
+  // FINAL
+  { num: 104, date: '2026-07-19', time: '16:00 UTC-4', homeRef: 'W101', awayRef: 'W102', ground: 'New York/New Jersey (East Rutherford)', round: 'FINAL' }
+];
+
+// Fix J85 time based on image (it's 00:00 on 03/07)
+_RAW_KNOCKOUT.find(m => m.num === 85).date = '2026-07-03';
+
+const KNOCKOUT_MATCHES = _RAW_KNOCKOUT.map(function(r) {
+  // We use m_72 to m_103 to represent matches 73 to 104
+  return {
+    id: 'm_' + (r.num - 1),
+    num: r.num,
+    group: 'Mata-Mata',
+    round: r.round,
+    homeRef: r.homeRef,
+    awayRef: r.awayRef,
+    // Em mata-mata, os times reais serão resolvidos dinamicamente. Se não houver, exibe o placeholder.
+    home: { code: 'unknown', name: r.homeRef, isPlaceholder: true },
+    away: { code: 'unknown', name: r.awayRef, isPlaceholder: true },
+    date: parseMatchDateTime(r.date, r.time),
+    dateStr: r.date,
+    ground: r.ground,
+    stadium: STADIUM_MAP[r.ground] || r.ground
+  };
+});
+
+// 7. CONSTRUIR ARRAYS FINAIS
 const ALL_MATCHES = _RAW.map(function(r, i) {
   return {
     id: 'm_' + i,
+    num: i + 1, // num 1 to 72
     group: r[4],
     home: TEAM_MAP[r[2]],
     away: TEAM_MAP[r[3]],
@@ -191,13 +261,119 @@ const ALL_MATCHES = _RAW.map(function(r, i) {
     ground: r[5],
     stadium: STADIUM_MAP[r[5]] || r[5]
   };
-}).sort(function(a, b) { return a.date - b.date; });
+}).concat(KNOCKOUT_MATCHES).sort(function(a, b) { return a.date - b.date; });
 
 const ALL_TEAMS = Object.values(TEAM_MAP).sort(function(a, b) {
   return a.name.localeCompare(b.name);
 });
 
-// 7. CONFIGURAÇÃO SUPABASE
+// FUNÇÃO PARA RESOLVER TIMES DO MATA-MATA COM BASE NOS RESULTADOS
+function getGroupStandings(results) {
+  let standingsByGroup = {};
+  
+  GROUPS.forEach(function(group) {
+    var standings = {};
+    group.teams.forEach(function(tKey) {
+      standings[tKey] = { key: tKey, team: TEAM_MAP[tKey], p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 };
+    });
+
+    var groupMatches = ALL_MATCHES.filter(function(m) { return m.group === group.letter; });
+    groupMatches.forEach(function(m) {
+      var r = results[m.id];
+      if (r && r.home !== undefined && r.away !== undefined && !r.canceled) {
+        var homeKey = Object.keys(TEAM_MAP).find(function(k) { return TEAM_MAP[k].code === m.home.code; });
+        var awayKey = Object.keys(TEAM_MAP).find(function(k) { return TEAM_MAP[k].code === m.away.code; });
+        if (standings[homeKey] && standings[awayKey]) {
+          standings[homeKey].p++; standings[awayKey].p++;
+          standings[homeKey].gf += r.home; standings[homeKey].ga += r.away;
+          standings[awayKey].gf += r.away; standings[awayKey].ga += r.home;
+          if (r.home > r.away) { standings[homeKey].pts += 3; }
+          else if (r.home < r.away) { standings[awayKey].pts += 3; }
+          else { standings[homeKey].pts += 1; standings[awayKey].pts += 1; }
+        }
+      }
+    });
+
+    var sorted = Object.values(standings).sort(function(a, b) {
+      if (b.pts !== a.pts) return b.pts - a.pts;
+      var gdA = a.gf - a.ga; var gdB = b.gf - b.ga;
+      if (gdB !== gdA) return gdB - gdA;
+      return b.gf - a.gf;
+    });
+    
+    standingsByGroup[group.letter] = sorted;
+  });
+  return standingsByGroup;
+}
+
+window.resolveKnockoutTeams = function(results) {
+  const standings = getGroupStandings(results);
+  
+  // Resolve times
+  ALL_MATCHES.forEach(m => {
+    if (m.group === 'Mata-Mata') {
+      // Resolve Home
+      m.home = resolveTeamRef(m.homeRef, standings, results) || { code: 'unknown', name: m.homeRef, isPlaceholder: true };
+      // Resolve Away
+      m.away = resolveTeamRef(m.awayRef, standings, results) || { code: 'unknown', name: m.awayRef, isPlaceholder: true };
+    }
+  });
+}
+
+function resolveTeamRef(ref, standings, results) {
+  if (!ref) return null;
+  // Group winners/runners up (e.g. 1A, 2B)
+  const groupMatch = ref.match(/^([1-2])([A-L])$/);
+  if (groupMatch) {
+    const pos = parseInt(groupMatch[1]) - 1;
+    const group = groupMatch[2];
+    if (standings[group] && standings[group][pos]) {
+      // Só resolve se o grupo já tiver completado pelo menos os jogos mínimos ou todos
+      // (simplificação: sempre resolvemos com o que temos, mas times podem mudar)
+      return standings[group][pos].team;
+    }
+  }
+  
+  // Winners (e.g. W74)
+  const winnerMatch = ref.match(/^W(\d+)$/);
+  if (winnerMatch) {
+    const num = parseInt(winnerMatch[1]);
+    const mId = 'm_' + (num - 1);
+    const mData = ALL_MATCHES.find(m => m.id === mId);
+    const r = results[mId];
+    if (mData && r && r.home !== undefined && r.away !== undefined) {
+      // Para mata-mata oficial deve haver pênaltis. Vamos usar o placar simples por enquanto.
+      if (r.home > r.away) return mData.home;
+      if (r.away > r.home) return mData.away;
+      if (r.home_pen !== undefined && r.away_pen !== undefined) {
+          if (r.home_pen > r.away_pen) return mData.home;
+          if (r.away_pen > r.home_pen) return mData.away;
+      }
+      return { code: 'unknown', name: 'Empate s/ Pen: ' + mData.home.name + ' ou ' + mData.away.name, isPlaceholder: true };
+    }
+  }
+  
+  // Losers (e.g. RU101)
+  const loserMatch = ref.match(/^RU(\d+)$/);
+  if (loserMatch) {
+    const num = parseInt(loserMatch[1]);
+    const mId = 'm_' + (num - 1);
+    const mData = ALL_MATCHES.find(m => m.id === mId);
+    const r = results[mId];
+    if (mData && r && r.home !== undefined && r.away !== undefined) {
+      if (r.home > r.away) return mData.away;
+      if (r.away > r.home) return mData.home;
+      if (r.home_pen !== undefined && r.away_pen !== undefined) {
+          if (r.home_pen > r.away_pen) return mData.away;
+          if (r.away_pen > r.home_pen) return mData.home;
+      }
+    }
+  }
+  
+  return null;
+}
+
+// 8. CONFIGURAÇÃO SUPABASE
 const supabaseUrl = "https://aeoknivsayldwtdxendn.supabase.co";
 const supabaseKey = "sb_publishable_8eboWI3ZuIuVG_7McZfunQ_to2lgfME";
 
