@@ -184,14 +184,14 @@ function renderMatches() {
         htmlMataMata += '<h3 class="day-header" style="color: var(--accent-gold);">' + curMataMataRound + '</h3>';
       }
       htmlMataMata += buildMatchCardHTML(match);
-    } else {
-      // Header do dia para a aba Todos os Jogos
-      if (dayKey !== curDay) {
-        curDay = dayKey;
-        htmlJogos += '<h3 class="day-header">' + formatDayHeader(match.date) + '</h3>';
-      }
-      htmlJogos += buildMatchCardHTML(match);
     }
+    
+    // Todos os Jogos (Cronológico, incluindo mata-mata)
+    if (dayKey !== curDay) {
+      curDay = dayKey;
+      htmlJogos += '<h3 class="day-header">' + formatDayHeader(match.date) + '</h3>';
+    }
+    htmlJogos += buildMatchCardHTML(match);
   });
 
   if (!htmlProximos) {
