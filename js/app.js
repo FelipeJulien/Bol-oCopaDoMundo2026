@@ -2028,7 +2028,7 @@ function renderBracket() {
       var matchId = 'm_' + (num - 1);
       var m = ALL_MATCHES.find(x => x.id === matchId);
       
-      html += '<div class="bracket-match" style="background:var(--bg-panel); border:1px solid var(--border-subtle); padding:10px; border-radius:8px; margin-bottom:16px;">';
+      html += '<div class="bracket-match" data-match-num="' + num + '" style="background:var(--bg-panel); border:1px solid var(--border-subtle); padding:10px; border-radius:8px; margin-bottom:16px; position:relative; z-index:2;">';
       
       if (r.labels && r.labels[idx]) {
         html += '<div style="text-align:center; font-size:10px; color:var(--text-muted); margin-bottom: 4px; font-weight: bold;">' + r.labels[idx] + '</div>';
@@ -2064,7 +2064,81 @@ function renderBracket() {
   });
 
   container.innerHTML = html;
+  
+  setTimeout(drawBracketLines, 100);
 }
+
+function drawBracketLines() {
+  const container = document.getElementById('bracket-container');
+  if (!container) return;
+  
+  let svg = document.getElementById('bracket-svg');
+  if (!svg) {
+    svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.id = 'bracket-svg';
+    svg.style.position = 'absolute';
+    svg.style.top = '0';
+    svg.style.left = '0';
+    svg.style.width = '100%';
+    svg.style.height = '100%';
+    svg.style.pointerEvents = 'none';
+    svg.style.zIndex = '1';
+    container.style.position = 'relative';
+    container.insertBefore(svg, container.firstChild);
+  } else {
+    svg.innerHTML = '';
+  }
+
+  // Define as conexões
+  const connections = [
+    { from: [74, 77], to: 89 },
+    { from: [73, 75], to: 90 },
+    { from: [83, 84], to: 93 },
+    { from: [81, 82], to: 94 },
+    { from: [76, 78], to: 91 },
+    { from: [79, 80], to: 92 },
+    { from: [86, 88], to: 95 },
+    { from: [85, 87], to: 96 },
+    { from: [89, 90], to: 97 },
+    { from: [93, 94], to: 98 },
+    { from: [91, 92], to: 99 },
+    { from: [95, 96], to: 100 },
+    { from: [97, 98], to: 101 },
+    { from: [99, 100], to: 102 },
+    { from: [101, 102], to: 104 }
+  ];
+
+  const containerRect = container.getBoundingClientRect();
+
+  connections.forEach(conn => {
+    const toEl = container.querySelector('.bracket-match[data-match-num="' + conn.to + '"]');
+    if (!toEl) return;
+    
+    const toRect = toEl.getBoundingClientRect();
+    const toX = toRect.left - containerRect.left;
+    const toY = toRect.top - containerRect.top + (toRect.height / 2);
+
+    conn.from.forEach(fromNum => {
+      const fromEl = container.querySelector('.bracket-match[data-match-num="' + fromNum + '"]');
+      if (!fromEl) return;
+      
+      const fromRect = fromEl.getBoundingClientRect();
+      const fromX = fromRect.right - containerRect.left;
+      const fromY = fromRect.top - containerRect.top + (fromRect.height / 2);
+
+      const midX = fromX + (toX - fromX) / 2;
+      
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute('d', 'M ' + fromX + ' ' + fromY + ' L ' + midX + ' ' + fromY + ' L ' + midX + ' ' + toY + ' L ' + toX + ' ' + toY);
+      path.setAttribute('stroke', '#444');
+      path.setAttribute('stroke-width', '2');
+      path.setAttribute('fill', 'none');
+      
+      svg.appendChild(path);
+    });
+  });
+}
+window.addEventListener('resize', () => { if (document.getElementById('bracket-svg')) drawBracketLines(); });
 
 // PONTO DE ENTRADA
 function initApp() {
