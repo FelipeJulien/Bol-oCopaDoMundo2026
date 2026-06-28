@@ -131,6 +131,14 @@ function buildMatchCardHTML(match) {
           '<input type="number" class="score-input p-away" data-match="' + match.id + '" min="0" max="20" id="p-away-' + match.id + '"' + (isLocked ? ' disabled' : '') + '>' +
           '<div class="save-status" id="status-' + match.id + '">✓</div>' +
         '</div>' +
+        (match.group === 'Mata-Mata' ? 
+          '<div class="penalty-selector" id="pen-sel-' + match.id + '" style="display:none; margin-top:8px;">' +
+            '<div class="penalty-label">Vencedor nos pênaltis:</div>' +
+            '<div class="penalty-options">' +
+              '<button type="button" class="pen-btn" id="pen-home-' + match.id + '" onclick="selectPenaltyWinner(\'' + match.id + '\', \'home\')" ' + (isLocked ? 'disabled' : '') + '>' + match.home.name + '</button>' +
+              '<button type="button" class="pen-btn" id="pen-away-' + match.id + '" onclick="selectPenaltyWinner(\'' + match.id + '\', \'away\')" ' + (isLocked ? 'disabled' : '') + '>' + match.away.name + '</button>' +
+            '</div>' +
+          '</div>' : '') +
         '<div style="margin-top:8px;">' +
           '<button class="btn-curinga" id="btn-curinga-' + match.id + '" data-match="' + match.id + '" onclick="toggleCuringa(\'' + match.id + '\')" ' + (isLocked ? 'disabled' : '') + '>⭐ Usar Curinga 2x</button>' +
         '</div>' +
@@ -465,6 +473,13 @@ function applyUserDataToDOM(data) {
       document.querySelectorAll('.match-card[data-match-id="' + matchId + '"]').forEach(function(card) {
         card.classList.add('bet-placed');
       });
+      var matchData = ALL_MATCHES.find(m => m.id === matchId);
+      if (matchData && matchData.group === 'Mata-Mata' && pick.home === pick.away) {
+        document.querySelectorAll('#pen-sel-' + matchId).forEach(el => el.style.display = 'flex');
+        if (pick.penaltyWinner) {
+          document.querySelectorAll('#pen-' + pick.penaltyWinner + '-' + matchId).forEach(el => el.classList.add('selected'));
+        }
+      }
     }
   });
 }
@@ -644,14 +659,45 @@ function setupAutoSave() {
         var myData = globalRanking.find(u => u.id === currentUser) || {picks:{}};
         var existingPick = (myData.picks && myData.picks[matchId]) || {};
         var existingCuringa = !!existingPick.isCuringa;
+        var existingPenaltyWinner = existingPick.penaltyWinner || null;
         
-        await dbAPI.savePick(currentUser, currentUserName, matchId, parseInt(hVal), parseInt(aVal), existingCuringa);
+        var isMataMata = matchData.group === 'Mata-Mata';
+        var isTie = (hVal === aVal);
+        
+        document.querySelectorAll('#pen-sel-' + matchId).forEach(el => {
+          el.style.display = (isMataMata && isTie) ? 'flex' : 'none';
+        });
+        
+        if (!isTie) existingPenaltyWinner = null;
+        
+        await dbAPI.savePick(currentUser, currentUserName, matchId, parseInt(hVal), parseInt(aVal), existingCuringa, existingPenaltyWinner);
         showSaveFeedback(matchId);
       }
     }
   });
 
   let pendingCuringaMatchId = null;
+
+  window.selectPenaltyWinner = async function(matchId, winner) {
+    if (!currentUser) return alert("Faça login para apostar!");
+    var matchData = ALL_MATCHES.find(m => m.id === matchId);
+    if (matchData && new Date() >= matchData.date) return alert("O tempo para apostar neste jogo já se esgotou!");
+    
+    // Update UI
+    document.querySelectorAll('#pen-home-' + matchId).forEach(el => el.classList.remove('selected'));
+    document.querySelectorAll('#pen-away-' + matchId).forEach(el => el.classList.remove('selected'));
+    document.querySelectorAll('#pen-' + winner + '-' + matchId).forEach(el => el.classList.add('selected'));
+    
+    // Save to DB
+    var hVal = document.getElementById('p-home-' + matchId).value;
+    var aVal = document.getElementById('p-away-' + matchId).value;
+    var myData = globalRanking.find(u => u.id === currentUser) || {picks:{}};
+    var existingPick = (myData.picks && myData.picks[matchId]) || {};
+    var existingCuringa = !!existingPick.isCuringa;
+    
+    await dbAPI.savePick(currentUser, currentUserName, matchId, parseInt(hVal), parseInt(aVal), existingCuringa, winner);
+    showSaveFeedback(matchId);
+  };
 
   window.toggleCuringa = async function(matchId) {
     if (!currentUser) return alert("Faça login para usar o Curinga!");
@@ -1741,14 +1787,26 @@ function updateDashboardProfile() {
       
       // Points calculation for this match
       var pts = 0;
-      if (p.home === r.home && p.away === r.away) {
+      var exactScore = (p.home === r.home && p.away === r.away);
+      var userWinner = (p.home > p.away) ? 'home' : (p.away > p.home) ? 'away' : (p.penaltyWinner || null);
+      var actualWinner = (r.home > r.away) ? 'home' : (r.away > r.home) ? 'away' : 
+                         ((r.home_pen !== undefined && r.away_pen !== undefined) ? ((r.home_pen > r.away_pen) ? 'home' : 'away') : null);
+
+      if (exactScore) {
         pts = 3;
-      } else if (
-        (p.home > p.away && r.home > r.away) ||
-        (p.home < p.away && r.home < r.away) ||
-        (p.home === p.away && r.home === r.away)
-      ) {
-        pts = 1;
+        if (p.home === p.away && m.group === 'Mata-Mata' && actualWinner) {
+           if (userWinner === actualWinner) pts += 1;
+        }
+      } else {
+        if (m.group === 'Mata-Mata') {
+           if (userWinner && actualWinner && userWinner === actualWinner) pts = 1;
+        } else {
+           if ( (p.home > p.away && r.home > r.away) ||
+                (p.home < p.away && r.home < r.away) ||
+                (p.home === p.away && r.home === r.away) ) {
+              pts = 1;
+           }
+        }
       }
       
       if (p.isCuringa) pts *= 2;

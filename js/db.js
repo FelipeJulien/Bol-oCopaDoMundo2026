@@ -475,13 +475,16 @@ async function _updateUser(userId, modifierFn) {
 
 // 8. API DO BANCO DE DADOS
 const dbAPI = {
-  savePick: async (userId, userName, matchId, home, away, isCuringa = false) => {
+  savePick: async (userId, userName, matchId, home, away, isCuringa = false, penaltyWinner = null) => {
     let localData = JSON.parse(localStorage.getItem('user_' + userId) || '{"picks":{}, "bonus":{}}');
     localData.name = userName;
     if (!localData.picks[matchId]) localData.picks[matchId] = {};
     localData.picks[matchId].home = home;
     localData.picks[matchId].away = away;
     if (isCuringa !== undefined) localData.picks[matchId].isCuringa = isCuringa;
+    if (penaltyWinner) localData.picks[matchId].penaltyWinner = penaltyWinner;
+    else delete localData.picks[matchId].penaltyWinner;
+    
     localStorage.setItem('user_' + userId, JSON.stringify(localData));
     if (window.supabaseClient) {
       await _updateUser(userId, (dbData) => {
@@ -492,6 +495,8 @@ const dbAPI = {
         dbData.picks[matchId].away = away;
         if (isCuringa) dbData.picks[matchId].isCuringa = true;
         else delete dbData.picks[matchId].isCuringa;
+        if (penaltyWinner) dbData.picks[matchId].penaltyWinner = penaltyWinner;
+        else delete dbData.picks[matchId].penaltyWinner;
       });
     }
   },
