@@ -309,19 +309,89 @@ function getGroupStandings(results) {
 window.resolveKnockoutTeams = function(results) {
   const standings = getGroupStandings(results);
   
+  // Calcular melhores 3ºs colocados (8 vagas)
+  let thirds = [];
+  GROUPS.forEach(g => {
+    if (standings[g.letter] && standings[g.letter][2]) {
+      thirds.push({ group: g.letter, team: standings[g.letter][2].team, stats: standings[g.letter][2] });
+    }
+  });
+  
+  thirds.sort(function(a, b) {
+    if (b.stats.pts !== a.stats.pts) return b.stats.pts - a.stats.pts;
+    var gdB = b.stats.gf - b.stats.ga;
+    var gdA = a.stats.gf - a.stats.ga;
+    if (gdB !== gdA) return gdB - gdA;
+    return b.stats.gf - a.stats.gf;
+  });
+  
+  let top8 = thirds.slice(0, 8);
+  let thirdAssignments = {};
+  
+  if (top8.length === 8) {
+    let slots = [
+      { id: '3A/B/C/D/F', groups: ['A','B','C','D','F'] },
+      { id: '3C/D/F/G/H', groups: ['C','D','F','G','H'] },
+      { id: '3C/E/F/H/I', groups: ['C','E','F','H','I'] },
+      { id: '3E/H/I/J/K', groups: ['E','H','I','J','K'] },
+      { id: '3B/E/F/I/J', groups: ['B','E','F','I','J'] },
+      { id: '3A/E/H/I/J', groups: ['A','E','H','I','J'] },
+      { id: '3E/F/G/I/J', groups: ['E','F','G','I','J'] },
+      { id: '3D/E/I/J/L', groups: ['D','E','I','J','L'] }
+    ];
+    
+    function backtrack(slotIndex, availableTeams) {
+      if (slotIndex === slots.length) return true;
+      let slot = slots[slotIndex];
+      for (let i = 0; i < availableTeams.length; i++) {
+        let t = availableTeams[i];
+        if (slot.groups.includes(t.group)) {
+          thirdAssignments[slot.id] = t.team;
+          let nextAvailable = availableTeams.slice();
+          nextAvailable.splice(i, 1);
+          if (backtrack(slotIndex + 1, nextAvailable)) return true;
+        }
+      }
+      return false;
+    }
+    
+    if (!backtrack(0, top8)) {
+      // Greedy fallback se não achar match perfeito
+      thirdAssignments = {};
+      let used = new Set();
+      slots.forEach(slot => {
+        let match = top8.find(t => !used.has(t.group) && slot.groups.includes(t.group));
+        if (match) {
+          thirdAssignments[slot.id] = match.team;
+          used.add(match.group);
+        } else {
+          let fallback = top8.find(t => !used.has(t.group));
+          if (fallback) {
+            thirdAssignments[slot.id] = fallback.team;
+            used.add(fallback.group);
+          }
+        }
+      });
+    }
+  }
+
   // Resolve times
   ALL_MATCHES.forEach(m => {
     if (m.group === 'Mata-Mata') {
       // Resolve Home
-      m.home = resolveTeamRef(m.homeRef, standings, results) || { code: 'unknown', name: m.homeRef, isPlaceholder: true };
+      m.home = resolveTeamRef(m.homeRef, standings, results, thirdAssignments) || { code: 'unknown', name: m.homeRef, isPlaceholder: true };
       // Resolve Away
-      m.away = resolveTeamRef(m.awayRef, standings, results) || { code: 'unknown', name: m.awayRef, isPlaceholder: true };
+      m.away = resolveTeamRef(m.awayRef, standings, results, thirdAssignments) || { code: 'unknown', name: m.awayRef, isPlaceholder: true };
     }
   });
 }
 
-function resolveTeamRef(ref, standings, results) {
+function resolveTeamRef(ref, standings, results, thirdAssignments) {
   if (!ref) return null;
+  
+  if (thirdAssignments && thirdAssignments[ref]) {
+    return thirdAssignments[ref];
+  }
   // Group winners/runners up (e.g. 1A, 2B)
   const groupMatch = ref.match(/^([1-2])([A-L])$/);
   if (groupMatch) {
