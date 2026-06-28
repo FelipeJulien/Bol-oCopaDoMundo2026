@@ -2011,11 +2011,11 @@ function renderBracket() {
 
   var html = '';
   
-  // Definição das colunas com base nos nums oficiais
+  // Definição das colunas com ordem visual corrigida para fechar os cruzamentos
   var rounds = [
-    { name: '32-Avos', matches: Array.from({length: 16}, (_, i) => i + 73) },
-    { name: 'Oitavas', matches: Array.from({length: 8}, (_, i) => i + 89) },
-    { name: 'Quartas', matches: Array.from({length: 4}, (_, i) => i + 97) },
+    { name: '32-Avos', matches: [74, 77, 73, 75, 83, 84, 81, 82, 76, 78, 79, 80, 86, 88, 85, 87] },
+    { name: 'Oitavas', matches: [89, 90, 93, 94, 91, 92, 95, 96] },
+    { name: 'Quartas', matches: [97, 98, 99, 100] },
     { name: 'Semis', matches: [101, 102] },
     { name: 'Finais', matches: [104, 103], labels: ['FINAL', '3º LUGAR'] }
   ];
