@@ -95,7 +95,13 @@ function parseMatchDateTime(dateStr, timeStr) {
   const parts = timeStr.split(' ');
   const time = parts[0];
   const utcPart = parts[1];
-  const offset = parseInt(utcPart.replace('UTC', ''));
+  if (!utcPart) {
+    return new Date(dateStr + 'T' + time + ':00Z');
+  }
+  let offsetText = utcPart.replace('UTC', '');
+  let offset = offsetText === '' ? 0 : parseInt(offsetText);
+  if (isNaN(offset)) offset = 0;
+  
   const sign = offset >= 0 ? '+' : '-';
   const absOffset = Math.abs(offset);
   const offsetStr = sign + String(absOffset).padStart(2, '0') + ':00';
