@@ -619,20 +619,31 @@ function renderLinhaAposta(userId, userName, matchId, pick) {
   let statusHTML = '<span class="badge-status status-agendado">Pendente</span>';
   
   if (r && r.home !== undefined && !r.canceled) {
-    if (pick.home === r.home && pick.away === r.away) {
+    var exactScore = (pick.home === r.home && pick.away === r.away);
+    var userWinner = (pick.home > pick.away) ? 'home' : (pick.away > pick.home) ? 'away' : (pick.penaltyWinner || null);
+    var actualWinner = (r.home > r.away) ? 'home' : (r.away > r.home) ? 'away' : 
+                       ((r.home_pen !== undefined && r.away_pen !== undefined) ? ((r.home_pen > r.away_pen) ? 'home' : 'away') : null);
+    
+    if (exactScore) {
       pts = 3;
       statusHTML = '<span class="badge-status status-encerrado">Placar Exato</span>';
-    } else if (
-      (pick.home > pick.away && r.home > r.away) ||
-      (pick.home < pick.away && r.home < r.away) ||
-      (pick.home === pick.away && r.home === r.away)
-    ) {
-      pts = 1;
-      statusHTML = '<span class="badge-status status-andamento" style="background:#3b82f6; color:white;">Vencedor</span>';
+      if (pick.home === pick.away && actualWinner && userWinner === actualWinner) {
+         pts += 1;
+         statusHTML = '<span class="badge-status status-encerrado" style="background:#eab308; color:black;">Exato + Pênalti</span>';
+      }
     } else {
-      pts = 0;
-      statusHTML = '<span class="badge-status status-agendado" style="background:var(--admin-border);">Errou</span>';
+      if (pick.home === pick.away && r.home === r.away) {
+        pts = 1;
+        statusHTML = '<span class="badge-status status-andamento" style="background:#3b82f6; color:white;">Empate</span>';
+      } else if (userWinner && actualWinner && userWinner === actualWinner) {
+        pts = 1;
+        statusHTML = '<span class="badge-status status-andamento" style="background:#3b82f6; color:white;">Vencedor</span>';
+      } else {
+        pts = 0;
+        statusHTML = '<span class="badge-status status-agendado" style="background:var(--admin-border);">Errou</span>';
+      }
     }
+    if (pick.isCuringa) pts *= 2;
   }
   
   const m = ALL_MATCHES.find(x => x.id === matchId);
