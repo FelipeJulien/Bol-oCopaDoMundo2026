@@ -792,7 +792,7 @@ const dbAPI = {
                        
                        if (exactScore) {
                          mPts = 3;
-                         if (p.home === p.away && m.group === 'Mata-Mata' && actualWinner && userWinner === actualWinner) {
+                         if (p.home === p.away && actualWinner && userWinner === actualWinner) {
                             mPts += 1;
                          }
                        } else {
@@ -878,7 +878,7 @@ const dbAPI = {
                 if (p.home === r.home && p.away === r.away) {
                   isExact = true;
                   pts = 3;
-                  if (p.home === p.away && m.group === 'Mata-Mata' && actualWinner && userWinner === actualWinner) {
+                  if (p.home === p.away && actualWinner && userWinner === actualWinner) {
                      pts += 1;
                   }
                 } else {

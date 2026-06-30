@@ -131,14 +131,13 @@ function buildMatchCardHTML(match) {
           '<input type="number" class="score-input p-away" data-match="' + match.id + '" min="0" max="20" id="p-away-' + match.id + '"' + (isLocked ? ' disabled' : '') + '>' +
           '<div class="save-status" id="status-' + match.id + '">✓</div>' +
         '</div>' +
-        (match.group === 'Mata-Mata' ? 
-          '<div class="penalty-selector" id="pen-sel-' + match.id + '" style="display:none; margin-top:8px;">' +
-            '<div class="penalty-label">Vencedor nos pênaltis:</div>' +
-            '<div class="penalty-options">' +
-              '<button type="button" class="pen-btn" id="pen-home-' + match.id + '" onclick="selectPenaltyWinner(\'' + match.id + '\', \'home\')" ' + (isLocked ? 'disabled' : '') + '>' + match.home.name + '</button>' +
-              '<button type="button" class="pen-btn" id="pen-away-' + match.id + '" onclick="selectPenaltyWinner(\'' + match.id + '\', \'away\')" ' + (isLocked ? 'disabled' : '') + '>' + match.away.name + '</button>' +
-            '</div>' +
-          '</div>' : '') +
+        '<div class="penalty-selector" id="pen-sel-' + match.id + '" style="display:none; margin-top:8px;">' +
+          '<div class="penalty-label">Vencedor nos pênaltis:</div>' +
+          '<div class="penalty-options">' +
+            '<button type="button" class="pen-btn" id="pen-home-' + match.id + '" onclick="selectPenaltyWinner(\'' + match.id + '\', \'home\')" ' + (isLocked ? 'disabled' : '') + '>' + match.home.name + '</button>' +
+            '<button type="button" class="pen-btn" id="pen-away-' + match.id + '" onclick="selectPenaltyWinner(\'' + match.id + '\', \'away\')" ' + (isLocked ? 'disabled' : '') + '>' + match.away.name + '</button>' +
+          '</div>' +
+        '</div>' +
         '<div style="margin-top:8px;">' +
           '<button class="btn-curinga" id="btn-curinga-' + match.id + '" data-match="' + match.id + '" onclick="toggleCuringa(\'' + match.id + '\')" ' + (isLocked ? 'disabled' : '') + '>⭐ Usar Curinga 2x</button>' +
         '</div>' +
@@ -474,7 +473,7 @@ function applyUserDataToDOM(data) {
         card.classList.add('bet-placed');
       });
       var matchData = ALL_MATCHES.find(m => m.id === matchId);
-      if (matchData && matchData.group === 'Mata-Mata' && pick.home === pick.away) {
+      if (matchData && pick.home === pick.away) {
         document.querySelectorAll('#pen-sel-' + matchId).forEach(el => el.style.display = 'flex');
         if (pick.penaltyWinner) {
           document.querySelectorAll('#pen-' + pick.penaltyWinner + '-' + matchId).forEach(el => el.classList.add('selected'));
@@ -1794,7 +1793,7 @@ function updateDashboardProfile() {
 
       if (exactScore) {
         pts = 3;
-        if (p.home === p.away && m.group === 'Mata-Mata' && actualWinner && userWinner === actualWinner) {
+        if (p.home === p.away && actualWinner && userWinner === actualWinner) {
            pts += 1;
         }
       } else {

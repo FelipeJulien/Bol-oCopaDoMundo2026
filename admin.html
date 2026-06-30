@@ -226,6 +226,16 @@
           <span>⭐ Marcar como Curinga 2x</span>
         </label>
       </div>
+      
+      <div id="edit-bet-penalty-container" class="form-group hidden" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--admin-border);">
+        <label style="color: #eab308; font-weight: bold; margin-bottom: 8px; display: block;">🎯 Empate!</label>
+        <label>Quem ganhará nos pênaltis?</label>
+        <select id="edit-bet-penalty-winner" class="modal-input" style="width: 100%;">
+          <option value="">Selecione o vencedor...</option>
+          <option value="home" id="edit-bet-penalty-home">Casa</option>
+          <option value="away" id="edit-bet-penalty-away">Fora</option>
+        </select>
+      </div>
       <div style="display:flex; justify-content:space-between; margin-top:24px;">
         <button class="btn-admin danger" id="btn-cancel-edit">Cancelar</button>
         <button class="btn-admin primary" id="btn-save-edit">Salvar Aposta</button>

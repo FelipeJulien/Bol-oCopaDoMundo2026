@@ -242,7 +242,7 @@ function checkPenaltyVisibility(matchId) {
   const hVal = parseInt(lancamentoHome.value);
   const aVal = parseInt(lancamentoAway.value);
   
-  if (match.group === 'Mata-Mata' && !isNaN(hVal) && !isNaN(aVal) && hVal === aVal) {
+  if (!isNaN(hVal) && !isNaN(aVal) && hVal === aVal) {
     lancamentoPenaltyContainer.classList.remove('hidden');
   } else {
     lancamentoPenaltyContainer.classList.add('hidden');
@@ -272,7 +272,7 @@ document.getElementById('btn-save-lancamento').addEventListener('click', async (
   resultsObj[matchId] = { home: parseInt(hVal), away: parseInt(aVal), canceled: false, status: 'finished' };
   
   // Penalties
-  if (match.group === 'Mata-Mata' && parseInt(hVal) === parseInt(aVal)) {
+  if (parseInt(hVal) === parseInt(aVal)) {
     const penWinner = lancamentoPenaltyWinner.value;
     if (!penWinner) {
       showAdminToast("Erro: Selecione quem ganhou nos pênaltis!", true);
@@ -646,7 +646,7 @@ function renderLinhaAposta(userId, userName, matchId, pick) {
       <td style="font-weight:bold;">${pickStr} ${pick.isCuringa ? '⭐' : ''}</td>
       <td><strong>${pts} pts</strong> ${statusHTML}</td>
       <td>
-        <button class="btn-admin" onclick="abrirModalEdicao('${userId}', '${userName}', '${matchId}', ${pick.home}, ${pick.away}, ${!!pick.isCuringa})">Editar</button>
+        <button class="btn-admin" onclick="abrirModalEdicao('${userId}', '${userName}', '${matchId}', ${pick.home}, ${pick.away}, ${!!pick.isCuringa}, '${pick.penaltyWinner || ''}')">Editar</button>
       </td>
     </tr>
   `;
@@ -675,20 +675,47 @@ const editBetHome = document.getElementById('edit-bet-home');
 const editBetAway = document.getElementById('edit-bet-away');
 const editBetCuringa = document.getElementById('edit-bet-curinga');
 
-window.abrirModalEdicao = function(userId, userName, matchId, home, away, isCuringa = false) {
+const editBetPenaltyContainer = document.getElementById('edit-bet-penalty-container');
+const editBetPenaltyWinner = document.getElementById('edit-bet-penalty-winner');
+const editBetPenaltyHome = document.getElementById('edit-bet-penalty-home');
+const editBetPenaltyAway = document.getElementById('edit-bet-penalty-away');
+
+window.abrirModalEdicao = function(userId, userName, matchId, home, away, isCuringa = false, penaltyWinner = '') {
   editBetUserid.value = userId;
   editBetUser.value = userName;
   editBetGameid.value = matchId;
   
   const m = ALL_MATCHES.find(x => x.id === matchId);
-  editBetGame.value = `${m.home.name} x ${m.away.name}`;
+  const groupPrefix = m.group === 'Mata-Mata' ? m.round : 'Grupo ' + m.group;
+  editBetGame.value = `${groupPrefix}: ${m.home.name} x ${m.away.name}`;
   
   editBetHome.value = home;
   editBetAway.value = away;
   editBetCuringa.checked = isCuringa;
   
+  editBetPenaltyHome.innerText = m.home.name;
+  editBetPenaltyAway.innerText = m.away.name;
+  editBetPenaltyWinner.value = penaltyWinner;
+  
+  checkEditPenaltyVisibility();
+  
   modalEditBet.classList.remove('hidden');
 };
+
+function checkEditPenaltyVisibility() {
+  const hVal = parseInt(editBetHome.value);
+  const aVal = parseInt(editBetAway.value);
+  
+  if (!isNaN(hVal) && !isNaN(aVal) && hVal === aVal) {
+    editBetPenaltyContainer.classList.remove('hidden');
+  } else {
+    editBetPenaltyContainer.classList.add('hidden');
+    editBetPenaltyWinner.value = '';
+  }
+}
+
+editBetHome.addEventListener('input', checkEditPenaltyVisibility);
+editBetAway.addEventListener('input', checkEditPenaltyVisibility);
 
 document.getElementById('btn-cancel-edit').addEventListener('click', () => {
   modalEditBet.classList.add('hidden');
@@ -707,16 +734,25 @@ document.getElementById('btn-save-edit').addEventListener('click', async () => {
     return;
   }
   
-  await dbAPI.savePick(userId, userName, matchId, h, a, isCuringa);
+  let penaltyWinner = null;
+  if (h === a) {
+    penaltyWinner = editBetPenaltyWinner.value;
+    if (!penaltyWinner) {
+      showAdminToast("Erro: Selecione quem ganhará nos pênaltis!", true);
+      return;
+    }
+  }
+
+  await dbAPI.savePick(userId, userName, matchId, h, a, isCuringa, penaltyWinner);
   await dbAPI.recalculateGlobalRanking(null, true);
-  logAction("Editar Aposta", `Aposta do usuário ${userId} no jogo ${matchId} alterada para ${h}x${a}`, "");
+  logAction("Editar Aposta", `Aposta do usuário ${userId} no jogo ${matchId} alterada para ${h}x${a}${penaltyWinner ? ' ('+penaltyWinner+')' : ''}`, "");
   
   // Update local cache so UI updates immediately
   if (typeof allUsersCache !== 'undefined') {
     let userInCache = allUsersCache.find(u => u.id === userId);
     if (userInCache) {
       if (!userInCache.picks) userInCache.picks = {};
-      userInCache.picks[matchId] = { home: h, away: a, isCuringa: isCuringa };
+      userInCache.picks[matchId] = { home: h, away: a, isCuringa: isCuringa, penaltyWinner: penaltyWinner };
     }
   }
   
@@ -755,7 +791,7 @@ document.getElementById('btn-add-bet').addEventListener('click', () => {
     userId = 'manual_' + Date.now();
   }
   
-  abrirModalEdicao(userId, userName, matchId, 0, 0, false);
+  abrirModalEdicao(userId, userName, matchId, 0, 0, false, '');
 });
 
 // INITIALIZE
