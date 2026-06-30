@@ -784,8 +784,22 @@ const dbAPI = {
                    const p = usersPicksMap[uDoc.id][m.id];
                    if (r && p && r.home !== undefined && p.home !== undefined) {
                        let mPts = 0;
-                       if (p.home === r.home && p.away === r.away) mPts = 3;
-                       else if ((p.home > p.away && r.home > r.away) || (p.home < p.away && r.home < r.away) || (p.home === p.away && r.home === r.away)) mPts = 1;
+                       
+                       var exactScore = (p.home === r.home && p.away === r.away);
+                       var userWinner = (p.home > p.away) ? 'home' : (p.away > p.home) ? 'away' : (p.penaltyWinner || null);
+                       var actualWinner = (r.home > r.away) ? 'home' : (r.away > r.home) ? 'away' : 
+                                          ((r.home_pen !== undefined && r.away_pen !== undefined) ? ((r.home_pen > r.away_pen) ? 'home' : 'away') : null);
+                       
+                       if (exactScore) {
+                         mPts = 3;
+                         if (p.home === p.away && m.group === 'Mata-Mata' && actualWinner && userWinner === actualWinner) {
+                            mPts += 1;
+                         }
+                       } else {
+                         if (p.home === p.away && r.home === r.away) mPts = 1;
+                         else if (userWinner && actualWinner && userWinner === actualWinner) mPts = 1;
+                       }
+                       
                        if (p.isCuringa) mPts *= 2;
                        runningPts += mPts;
                    }
@@ -855,18 +869,34 @@ const dbAPI = {
               if (r && r.home !== undefined && p && p.home !== undefined && isMatchFinished(m, r)) {
                 let isExact = false;
                 let isWinner = false;
-                if (p.home === r.home && p.away === r.away) isExact = true;
-                else if (
-                  (p.home > p.away && r.home > r.away) ||
-                  (p.home < p.away && r.home < r.away) ||
-                  (p.home === p.away && r.home === r.away)
-                ) isWinner = true;
+                let pts = 0;
+                
+                var userWinner = (p.home > p.away) ? 'home' : (p.away > p.home) ? 'away' : (p.penaltyWinner || null);
+                var actualWinner = (r.home > r.away) ? 'home' : (r.away > r.home) ? 'away' : 
+                                   ((r.home_pen !== undefined && r.away_pen !== undefined) ? ((r.home_pen > r.away_pen) ? 'home' : 'away') : null);
+                
+                if (p.home === r.home && p.away === r.away) {
+                  isExact = true;
+                  pts = 3;
+                  if (p.home === p.away && m.group === 'Mata-Mata' && actualWinner && userWinner === actualWinner) {
+                     pts += 1;
+                  }
+                } else {
+                  if (p.home === p.away && r.home === r.away) {
+                    isWinner = true;
+                    pts = 1;
+                  } else if (userWinner && actualWinner && userWinner === actualWinner) {
+                    isWinner = true;
+                    pts = 1;
+                  }
+                }
+                pts *= (p.isCuringa ? 2 : 1);
                 
                 userFinishedMatches.push({
                   match: m, 
                   pick: p,
                   result: r,
-                  pts: (isExact ? 3 : (isWinner ? 1 : 0)) * (p.isCuringa ? 2 : 1), 
+                  pts: pts, 
                   totalGoals: r.home + r.away, 
                   exact: isExact,
                   winner: isWinner || isExact,

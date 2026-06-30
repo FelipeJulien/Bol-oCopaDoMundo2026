@@ -154,6 +154,47 @@
     </div>
   </div>
 
+  <!-- MODAL LANÇAMENTO RESULTADO -->
+  <div id="modal-lancamento-resultado" class="modal-overlay hidden">
+    <div class="modal-content modal-inner" style="max-width: 450px;">
+      <h3 style="margin-top:0; color:var(--admin-primary);">Lançar Resultado</h3>
+      <p style="color: var(--admin-muted); font-size: 0.9rem; margin-bottom: 16px;">Placar Oficial do Jogo.</p>
+      
+      <input type="hidden" id="lancamento-matchid">
+      
+      <div class="form-group" style="text-align: center;">
+        <label id="lancamento-game-label" style="font-weight: bold; font-size: 1.1rem; margin-bottom: 10px; display: block;"></label>
+      </div>
+
+      <div class="form-group" style="display:flex; justify-content: center; gap:16px; align-items:center;">
+        <div style="text-align: center;">
+          <label id="lancamento-home-label">Casa</label>
+          <input type="number" id="lancamento-home" class="modal-input" style="width:80px; text-align: center; font-size: 1.2rem; font-weight: bold;" min="0">
+        </div>
+        <span style="font-size:1.5rem; margin-top:10px;">×</span>
+        <div style="text-align: center;">
+          <label id="lancamento-away-label">Fora</label>
+          <input type="number" id="lancamento-away" class="modal-input" style="width:80px; text-align: center; font-size: 1.2rem; font-weight: bold;" min="0">
+        </div>
+      </div>
+      
+      <div id="lancamento-penalty-container" class="form-group hidden" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--admin-border);">
+        <label style="color: #eab308; font-weight: bold; margin-bottom: 8px; display: block;">🎯 Empate no Mata-Mata!</label>
+        <label>Quem ganhou nos pênaltis?</label>
+        <select id="lancamento-penalty-winner" class="modal-input" style="width: 100%;">
+          <option value="">Selecione o vencedor...</option>
+          <option value="home" id="lancamento-penalty-home">Casa</option>
+          <option value="away" id="lancamento-penalty-away">Fora</option>
+        </select>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; margin-top:24px;">
+        <button class="btn-admin danger" id="btn-cancel-lancamento">Cancelar</button>
+        <button class="btn-admin primary" id="btn-save-lancamento">Salvar Resultado</button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL EDIÇÃO APOSTA -->
   <div id="modal-edit-bet" class="modal-overlay hidden">
     <div class="modal-content modal-inner">

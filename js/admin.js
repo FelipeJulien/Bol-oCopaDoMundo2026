@@ -68,6 +68,10 @@ async function initAdmin() {
     allResultsCache = officialResults || {};
     allUsersCache = ranking || []; // Ranking já traz exato, vencedor e pts
     
+    if (typeof window.resolveKnockoutTeams === 'function') {
+      window.resolveKnockoutTeams(allResultsCache);
+    }
+    
     renderJogos();
     renderRanking();
     renderUsuarios();
@@ -148,6 +152,9 @@ function renderJogos() {
     } else if (isFinished) {
       statusClass = 'status-encerrado';
       statusText = 'Encerrado';
+    } else if (agora > new Date(match.date.getTime() + 180 * 60 * 1000)) {
+      statusClass = 'status-encerrado';
+      statusText = 'Aguardando Resultado';
     } else if (agora >= match.date) {
       statusClass = 'status-andamento';
       statusText = 'Em andamento / Aguardando';
@@ -159,24 +166,23 @@ function renderJogos() {
     html += `
       <div class="admin-game-card">
         <div class="admin-game-meta">
-          <div><strong>Grupo ${match.group}</strong></div>
+          <div><strong>${match.group === 'Mata-Mata' ? match.round : 'Grupo ' + match.group}</strong></div>
           <div>${match.dateStr}</div>
           <div style="margin-top: 8px;"><span class="badge-status ${statusClass}">${statusText}</span></div>
         </div>
-        <div class="admin-game-teams">
+        <div class="admin-game-teams" style="justify-content: center; gap: 15px;">
           <span style="font-weight: 600;">${match.home.name}</span>
           <img src="https://flagcdn.com/w40/${match.home.code}.png" alt="home">
           
-          <input type="number" id="res-home-${match.id}" class="admin-score-input" value="${homeVal}" min="0">
+          <span style="font-size: 1.5rem; font-weight: bold;">${homeVal !== '' ? homeVal : '-'}</span>
           <span style="font-size: 1.2rem;">×</span>
-          <input type="number" id="res-away-${match.id}" class="admin-score-input" value="${awayVal}" min="0">
+          <span style="font-size: 1.5rem; font-weight: bold;">${awayVal !== '' ? awayVal : '-'}</span>
           
           <img src="https://flagcdn.com/w40/${match.away.code}.png" alt="away">
           <span style="font-weight: 600;">${match.away.name}</span>
         </div>
         <div class="admin-game-actions" style="display:flex; flex-direction:column; gap:8px;">
-          <button class="btn-admin primary" onclick="salvarResultado('${match.id}')">Salvar Resultado</button>
-          <button class="btn-admin" style="background:#8a2be2;" onclick="finalizarJogo('${match.id}')">Finalizar Jogo</button>
+          <button class="btn-admin primary" onclick="abrirModalLancamento('${match.id}')">Lançar Resultado</button>
           <button class="btn-admin secondary" style="background:#444;" onclick="zerarResultado('${match.id}')">Zerar Placar</button>
           <button class="btn-admin danger" onclick="cancelarJogo('${match.id}')">Cancelar Jogo</button>
         </div>
@@ -186,9 +192,76 @@ function renderJogos() {
   container.innerHTML = html;
 }
 
-window.salvarResultado = async function(matchId) {
-  const hVal = document.getElementById(`res-home-${matchId}`).value;
-  const aVal = document.getElementById(`res-away-${matchId}`).value;
+// Lançamento Modal Logic
+const modalLancamento = document.getElementById('modal-lancamento-resultado');
+const lancamentoMatchId = document.getElementById('lancamento-matchid');
+const lancamentoGameLabel = document.getElementById('lancamento-game-label');
+const lancamentoHomeLabel = document.getElementById('lancamento-home-label');
+const lancamentoAwayLabel = document.getElementById('lancamento-away-label');
+const lancamentoHome = document.getElementById('lancamento-home');
+const lancamentoAway = document.getElementById('lancamento-away');
+const lancamentoPenaltyContainer = document.getElementById('lancamento-penalty-container');
+const lancamentoPenaltyWinner = document.getElementById('lancamento-penalty-winner');
+const lancamentoPenaltyHome = document.getElementById('lancamento-penalty-home');
+const lancamentoPenaltyAway = document.getElementById('lancamento-penalty-away');
+
+window.abrirModalLancamento = function(matchId) {
+  const match = ALL_MATCHES.find(m => m.id === matchId);
+  if (!match) return;
+  
+  lancamentoMatchId.value = matchId;
+  lancamentoGameLabel.innerText = `${match.group === 'Mata-Mata' ? match.round : 'Grupo ' + match.group}: ${match.home.name} x ${match.away.name}`;
+  lancamentoHomeLabel.innerText = match.home.name;
+  lancamentoAwayLabel.innerText = match.away.name;
+  lancamentoPenaltyHome.innerText = match.home.name;
+  lancamentoPenaltyAway.innerText = match.away.name;
+  
+  const res = allResultsCache[matchId];
+  if (res && res.home !== undefined && !res.canceled) {
+    lancamentoHome.value = res.home;
+    lancamentoAway.value = res.away;
+    if (res.home_pen !== undefined) {
+      lancamentoPenaltyWinner.value = res.home_pen > res.away_pen ? 'home' : 'away';
+    } else {
+      lancamentoPenaltyWinner.value = '';
+    }
+  } else {
+    lancamentoHome.value = '';
+    lancamentoAway.value = '';
+    lancamentoPenaltyWinner.value = '';
+  }
+  
+  checkPenaltyVisibility(matchId);
+  modalLancamento.classList.remove('hidden');
+};
+
+function checkPenaltyVisibility(matchId) {
+  const match = ALL_MATCHES.find(m => m.id === matchId);
+  if (!match) return;
+  
+  const hVal = parseInt(lancamentoHome.value);
+  const aVal = parseInt(lancamentoAway.value);
+  
+  if (match.group === 'Mata-Mata' && !isNaN(hVal) && !isNaN(aVal) && hVal === aVal) {
+    lancamentoPenaltyContainer.classList.remove('hidden');
+  } else {
+    lancamentoPenaltyContainer.classList.add('hidden');
+    lancamentoPenaltyWinner.value = '';
+  }
+}
+
+lancamentoHome.addEventListener('input', () => checkPenaltyVisibility(lancamentoMatchId.value));
+lancamentoAway.addEventListener('input', () => checkPenaltyVisibility(lancamentoMatchId.value));
+
+document.getElementById('btn-cancel-lancamento').addEventListener('click', () => {
+  modalLancamento.classList.add('hidden');
+});
+
+document.getElementById('btn-save-lancamento').addEventListener('click', async () => {
+  const matchId = lancamentoMatchId.value;
+  const match = ALL_MATCHES.find(m => m.id === matchId);
+  const hVal = lancamentoHome.value;
+  const aVal = lancamentoAway.value;
   
   if (hVal === '' || aVal === '') {
     showAdminToast("Erro: Preencha os placares das duas equipes!", true);
@@ -196,31 +269,38 @@ window.salvarResultado = async function(matchId) {
   }
   
   const resultsObj = {};
-  resultsObj[matchId] = { home: parseInt(hVal), away: parseInt(aVal), canceled: false, status: 'live' };
-  
-  await dbAPI.saveResult(resultsObj);
-  logAction('Salvar Resultado', `Jogo ${matchId}: ${hVal}x${aVal}`, 'Sem resultado oficial');
-  showAdminToast("Resultado salvo com sucesso!");
-  logAction("salvar_resultado", resultsObj, null);
-};
-
-window.finalizarJogo = async function(matchId) {
-  if (!confirm('Tem certeza que deseja finalizar este jogo manualmente? Ele será encerrado na tela principal.')) return;
-  const hVal = document.getElementById(`res-home-${matchId}`).value;
-  const aVal = document.getElementById(`res-away-${matchId}`).value;
-  
-  if (hVal === '' || aVal === '') {
-    showAdminToast("Erro: Preencha os placares antes de finalizar!", true);
-    return;
-  }
-  
-  const resultsObj = {};
   resultsObj[matchId] = { home: parseInt(hVal), away: parseInt(aVal), canceled: false, status: 'finished' };
   
-  await dbAPI.saveResult(resultsObj);
-  showAdminToast("Jogo finalizado com sucesso!");
-  logAction("finalizar_jogo", resultsObj, null);
-};
+  // Penalties
+  if (match.group === 'Mata-Mata' && parseInt(hVal) === parseInt(aVal)) {
+    const penWinner = lancamentoPenaltyWinner.value;
+    if (!penWinner) {
+      showAdminToast("Erro: Selecione quem ganhou nos pênaltis!", true);
+      return;
+    }
+    resultsObj[matchId].home_pen = penWinner === 'home' ? 1 : 0;
+    resultsObj[matchId].away_pen = penWinner === 'away' ? 1 : 0;
+  }
+  
+  const btn = document.getElementById('btn-save-lancamento');
+  btn.innerText = 'Salvando...';
+  btn.disabled = true;
+  
+  try {
+    await dbAPI.saveResult(resultsObj);
+    logAction('Salvar Resultado', `Jogo ${matchId}: ${hVal}x${aVal}`, 'Sem resultado oficial');
+    showAdminToast("Resultado salvo com sucesso!");
+    logAction("salvar_resultado", resultsObj, null);
+    modalLancamento.classList.add('hidden');
+  } catch(e) {
+    showAdminToast("Erro ao salvar resultado.", true);
+  }
+  
+  btn.innerText = 'Salvar Resultado';
+  btn.disabled = false;
+});
+
+// window.salvarResultado & window.finalizarJogo removed as they are handled by the modal now
 
 window.zerarResultado = async function(matchId) {
   if (!confirm("Tem certeza que deseja zerar o placar deste jogo? Ele voltará a ficar sem resultado e pontos distribuídos serão removidos.")) return;
@@ -482,7 +562,8 @@ function populateBetFilters() {
     ALL_MATCHES.forEach(m => {
       const opt = document.createElement('option');
       opt.value = m.id;
-      opt.text = `Grupo ${m.group} | ${m.home.name} x ${m.away.name}`;
+      const groupPrefix = m.group === 'Mata-Mata' ? m.round : 'Grupo ' + m.group;
+      opt.text = `${groupPrefix} | ${m.home.name} x ${m.away.name}`;
       filterGame.appendChild(opt);
     });
   }

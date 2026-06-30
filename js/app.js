@@ -69,7 +69,7 @@ function animateValue(obj, start, end, duration) {
 // 2. GERAR HTML DE UM CARD DE JOGO — Redesign 3 colunas
 function buildMatchCardHTML(match) {
   var agora = new Date();
-  var matchEnd = new Date(match.date.getTime() + 120 * 60 * 1000); // ~120 min de jogo (90 + 30 margem)
+  var matchEnd = new Date(match.date.getTime() + 180 * 60 * 1000); // ~180 min de jogo (3 horas)
   var oneHourBefore = new Date(match.date.getTime() - 60 * 60 * 1000);
   
   var res = globalOfficialResults[match.id];
@@ -1238,7 +1238,7 @@ function updateHeaderStatus() {
   var nextMatch = null;
   
   ALL_MATCHES.forEach(function(match) {
-    var matchEnd = new Date(match.date.getTime() + 120 * 60 * 1000);
+    var matchEnd = new Date(match.date.getTime() + 180 * 60 * 1000);
     var res = globalOfficialResults[match.id];
     var isLiveAPI = res && res.status === 'live';
     var isFinishedAPI = res && res.status === 'finished';
@@ -1320,7 +1320,7 @@ function updateLiveTab() {
   // 1. Identificar quais jogos estão ao vivo
   ALL_MATCHES.forEach(function(m) {
     var res = globalOfficialResults[m.id] || { home: 0, away: 0, canceled: false };
-    var matchEnd = new Date(m.date.getTime() + 120 * 60 * 1000); // margem de 120 min
+    var matchEnd = new Date(m.date.getTime() + 180 * 60 * 1000); // margem de 180 min (3h)
     var isLiveAPI = res.status === 'live';
     var isFinishedAPI = res.status === 'finished';
     var isFinished = isFinishedAPI || (agora > matchEnd && !isLiveAPI);
@@ -1794,18 +1794,14 @@ function updateDashboardProfile() {
 
       if (exactScore) {
         pts = 3;
-        if (p.home === p.away && m.group === 'Mata-Mata' && actualWinner) {
-           if (userWinner === actualWinner) pts += 1;
+        if (p.home === p.away && m.group === 'Mata-Mata' && actualWinner && userWinner === actualWinner) {
+           pts += 1;
         }
       } else {
-        if (m.group === 'Mata-Mata') {
-           if (userWinner && actualWinner && userWinner === actualWinner) pts = 1;
-        } else {
-           if ( (p.home > p.away && r.home > r.away) ||
-                (p.home < p.away && r.home < r.away) ||
-                (p.home === p.away && r.home === r.away) ) {
-              pts = 1;
-           }
+        if (p.home === p.away && r.home === r.away) {
+           pts = 1;
+        } else if (userWinner && actualWinner && userWinner === actualWinner) {
+           pts = 1;
         }
       }
       
